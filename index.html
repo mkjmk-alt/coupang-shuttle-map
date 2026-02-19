@@ -3,9 +3,15 @@
 
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport"
+        content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>쿠팡 셔틀버스 노선 지도</title>
     <meta name="description" content="쿠팡 물류센터 셔틀버스 노선을 지도에서 확인하세요.">
+    <!-- Mobile Web App -->
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="theme-color" content="#0F172A">
+    <meta name="mobile-web-app-capable" content="yes">
     <!-- Pretendard Font -->
     <link rel="stylesheet" as="style" crossorigin
         href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css" />
@@ -13,12 +19,17 @@
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <!-- App CSS -->
     <link rel="stylesheet" href="style.css">
-    <!-- Leaflet JS (NO API KEY NEEDED!) -->
+    <!-- Leaflet JS -->
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 </head>
 
 <body>
     <div id="map"></div>
+
+    <!-- Mobile Top Bar (shown on mobile only) -->
+    <div class="mobile-topbar" id="mobile-topbar">
+        <div class="topbar-title">🚌 쿠팡 셔틀지도</div>
+    </div>
 
     <aside class="sidebar" id="sidebar">
         <div class="drag-handle" id="drag-handle">
