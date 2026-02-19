@@ -256,6 +256,19 @@ function minimizeMobileSheet() {
     const sidebar = document.getElementById('sidebar');
     sidebar.classList.add('minimized');
     sidebar.classList.remove('expanded');
+    sidebar.classList.remove('collapsed');
+    updateMiniInfo();
+}
+
+function updateMiniInfo() {
+    const miniInfo = document.getElementById('mini-info');
+    const fcSelect = document.getElementById('fc-select');
+    if (miniInfo && fcSelect && fcSelect.value && fcSelect.value !== '__ALL__') {
+        const selectedText = fcSelect.options[fcSelect.selectedIndex]?.text || '';
+        miniInfo.textContent = '🚌 ' + selectedText + ' — 탭하여 열기';
+    } else {
+        miniInfo.textContent = '위로 밀어 올려 센터를 선택하세요';
+    }
 }
 
 function setupMobileBottomSheet() {

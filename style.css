@@ -96,7 +96,7 @@ html {
     overflow-y: auto;
     overflow-x: hidden;
     overscroll-behavior: contain;
-    transform: translateY(calc(100% - 220px));
+    transform: translateY(calc(100% - 240px));
     transition: transform 0.35s cubic-bezier(0.4, 0, 0.2, 1);
     will-change: transform;
 }
@@ -107,25 +107,23 @@ html {
 }
 
 .sidebar.minimized {
-    transform: translateY(calc(100% - 56px));
+    transform: translateY(calc(100% - 80px));
     overflow: hidden;
 }
 
 .sidebar.collapsed {
-    transform: translateY(calc(100% - 56px));
+    transform: translateY(calc(100% - 80px));
     opacity: 1;
     pointer-events: auto;
     overflow: hidden;
 }
 
-/* Peek mode: hide detail sections */
-.sidebar:not(.expanded) .route-info,
-.sidebar:not(.expanded) .route-stats,
-.sidebar:not(.expanded) .center-info-card {
+/* Peek mode: show controls + center info + stats, but hide stop list */
+.sidebar:not(.expanded) .route-info {
     display: none !important;
 }
 
-/* Minimized/Collapsed: hide everything except drag handle */
+/* Minimized/Collapsed: hide everything except drag handle + mini info */
 .sidebar.minimized .header,
 .sidebar.minimized .search-box,
 .sidebar.minimized .controls,
@@ -139,6 +137,20 @@ html {
 .sidebar.collapsed .route-stats,
 .sidebar.collapsed .route-info {
     display: none !important;
+}
+
+/* Mini info strip — shown only in minimized state */
+.mini-info {
+    display: none;
+    padding: 4px 0;
+    text-align: center;
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--text-muted);
+}
+
+.sidebar.minimized .mini-info {
+    display: block;
 }
 
 .sidebar::-webkit-scrollbar {
@@ -658,7 +670,7 @@ select:disabled {
 /* ===== FLOATING ACTIONS ===== */
 .floating-actions {
     position: fixed;
-    bottom: calc(230px + var(--safe-bottom));
+    bottom: calc(250px + var(--safe-bottom));
     right: 12px;
     display: flex;
     flex-direction: column;
@@ -670,7 +682,7 @@ select:disabled {
 /* When sidebar is minimized or collapsed, move FABs down */
 .sidebar.minimized~.floating-actions,
 .sidebar.collapsed~.floating-actions {
-    bottom: calc(70px + var(--safe-bottom));
+    bottom: calc(90px + var(--safe-bottom));
 }
 
 .sidebar.expanded~.floating-actions {
