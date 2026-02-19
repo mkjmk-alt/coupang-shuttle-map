@@ -759,7 +759,6 @@ select:disabled {
         right: 0;
         width: 100% !important;
         max-height: 85vh;
-        height: auto;
         border-radius: 20px 20px 0 0;
         padding: 0 16px 20px;
         z-index: 1001;
@@ -769,29 +768,50 @@ select:disabled {
         border: 1px solid var(--border);
         border-bottom: none;
         will-change: transform;
+        overflow-y: auto;
     }
 
+    /* Fully expanded — everything visible, scrollable */
     .sidebar.expanded {
         transform: translateY(0);
+        overflow-y: auto;
     }
 
+    /* Minimized — only drag handle visible */
+    .sidebar.minimized {
+        transform: translateY(calc(100% - 56px));
+        overflow: hidden;
+    }
+
+    /* Collapsed (legacy desktop toggle) */
     .sidebar.collapsed {
-        transform: translateY(calc(100% - 60px));
+        transform: translateY(calc(100% - 56px));
         opacity: 1;
         pointer-events: auto;
+        overflow: hidden;
     }
 
-    .sidebar.collapsed .drag-handle {
-        display: flex;
+    /* In peek (default) — hide detail sections */
+    .sidebar:not(.expanded) .route-info,
+    .sidebar:not(.expanded) .route-stats,
+    .sidebar:not(.expanded) .center-info-card {
+        display: none !important;
     }
 
+    /* In minimized/collapsed — hide everything except drag handle */
+    .sidebar.minimized .header,
+    .sidebar.minimized .search-box,
+    .sidebar.minimized .controls,
+    .sidebar.minimized .center-info-card,
+    .sidebar.minimized .route-stats,
+    .sidebar.minimized .route-info,
     .sidebar.collapsed .header,
     .sidebar.collapsed .search-box,
     .sidebar.collapsed .controls,
     .sidebar.collapsed .center-info-card,
     .sidebar.collapsed .route-stats,
     .sidebar.collapsed .route-info {
-        display: none;
+        display: none !important;
     }
 
     /* -- Header compact -- */

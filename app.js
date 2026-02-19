@@ -143,6 +143,7 @@ function setupEventListeners() {
         if (shift === ALL_VALUE) {
             routeSelect.disabled = true;
             showMultiRoute(fcCode, null);
+            minimizeMobileSheet();
             return;
         }
 
@@ -163,6 +164,7 @@ function setupEventListeners() {
             // Auto-select "전체 노선" and show all routes
             routeSelect.value = ALL_VALUE;
             showMultiRoute(fcCode, shift);
+            minimizeMobileSheet();
         } else {
             routeSelect.disabled = true;
         }
@@ -176,6 +178,7 @@ function setupEventListeners() {
 
         if (route === ALL_VALUE) {
             showMultiRoute(fcCode, shift);
+            minimizeMobileSheet();
             return;
         }
 
@@ -183,6 +186,7 @@ function setupEventListeners() {
             const stops = shuttleData[fcCode].shifts[shift][route];
             const center = shuttleData[fcCode].center;
             renderSingleRoute(stops, center, route, '#4F46E5');
+            minimizeMobileSheet();
         }
     });
 
@@ -200,8 +204,12 @@ function setupEventListeners() {
     // Sidebar toggle — different behavior on mobile vs desktop
     sidebarToggle.addEventListener('click', () => {
         if (isMobile()) {
-            sidebar.classList.toggle('collapsed');
-            sidebar.classList.remove('expanded');
+            if (sidebar.classList.contains('minimized')) {
+                sidebar.classList.remove('minimized');
+            } else {
+                sidebar.classList.add('minimized');
+                sidebar.classList.remove('expanded');
+            }
         } else {
             sidebar.classList.toggle('collapsed');
         }
@@ -241,6 +249,13 @@ function setupEventListeners() {
 
 function isMobile() {
     return window.innerWidth <= 768;
+}
+
+function minimizeMobileSheet() {
+    if (!isMobile()) return;
+    const sidebar = document.getElementById('sidebar');
+    sidebar.classList.add('minimized');
+    sidebar.classList.remove('expanded');
 }
 
 function setupMobileBottomSheet() {
@@ -283,16 +298,19 @@ function setupMobileBottomSheet() {
         if (currentY < threshold) {
             // Expand
             sidebar.classList.add('expanded');
+            sidebar.classList.remove('minimized');
             sidebar.classList.remove('collapsed');
             sidebar.style.transform = '';
         } else if (currentY > sidebarHeight - 100) {
-            // Collapse (minimized)
-            sidebar.classList.add('collapsed');
+            // Minimized
+            sidebar.classList.add('minimized');
             sidebar.classList.remove('expanded');
+            sidebar.classList.remove('collapsed');
             sidebar.style.transform = '';
         } else {
             // Peek (default)
             sidebar.classList.remove('expanded');
+            sidebar.classList.remove('minimized');
             sidebar.classList.remove('collapsed');
             sidebar.style.transform = '';
         }
@@ -305,25 +323,20 @@ function setupMobileBottomSheet() {
     document.addEventListener('touchend', onEnd);
     document.addEventListener('mouseup', onEnd);
 
-    // Tap on drag handle toggles between peek ↔ expanded
+    // Tap on drag handle cycles: minimized → peek → expanded → minimized
     dragHandle.addEventListener('click', () => {
         if (!isMobile()) return;
-        if (sidebar.classList.contains('expanded')) {
+        if (sidebar.classList.contains('minimized')) {
+            // minimized → peek
+            sidebar.classList.remove('minimized');
+        } else if (sidebar.classList.contains('expanded')) {
+            // expanded → minimized
             sidebar.classList.remove('expanded');
-        } else if (sidebar.classList.contains('collapsed')) {
-            sidebar.classList.remove('collapsed');
+            sidebar.classList.add('minimized');
         } else {
+            // peek → expanded
             sidebar.classList.add('expanded');
         }
-    });
-
-    // Auto-expand when user interacts with selects on mobile
-    ['fc-select', 'shift-select', 'route-select'].forEach(id => {
-        document.getElementById(id).addEventListener('change', () => {
-            if (isMobile() && !sidebar.classList.contains('expanded')) {
-                sidebar.classList.remove('collapsed');
-            }
-        });
     });
 }
 
