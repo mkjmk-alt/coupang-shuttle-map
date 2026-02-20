@@ -85,13 +85,63 @@ function setupEventListeners() {
     const sidebarToggle = document.getElementById('sidebar-toggle');
     const sidebar = document.getElementById('sidebar');
     const fcSearch = document.getElementById('fc-search');
+    const searchResults = document.getElementById('search-results');
+
+    // Build search index once
+    const searchIndex = Object.keys(shuttleData).map(fc => ({
+        code: fc,
+        name: shuttleData[fc].center?.name || fc,
+        searchText: `${fc} ${shuttleData[fc].center?.name || ''}`.toLowerCase()
+    }));
+
+    function showSearchResults(query) {
+        searchResults.innerHTML = '';
+        if (!query) {
+            searchResults.classList.remove('active');
+            return;
+        }
+
+        const matches = searchIndex.filter(item => item.searchText.includes(query));
+
+        if (matches.length === 0) {
+            searchResults.innerHTML = '<div class="search-result-empty">검색 결과가 없습니다</div>';
+            searchResults.classList.add('active');
+            return;
+        }
+
+        matches.forEach(item => {
+            const el = document.createElement('div');
+            el.className = 'search-result-item';
+            el.innerHTML = `
+                <span class="search-result-code">${item.code}</span>
+                <span class="search-result-name">${item.name}</span>
+            `;
+            el.addEventListener('click', () => {
+                fcSelect.value = item.code;
+                fcSelect.dispatchEvent(new Event('change'));
+                fcSearch.value = '';
+                searchResults.classList.remove('active');
+            });
+            searchResults.appendChild(el);
+        });
+        searchResults.classList.add('active');
+    }
 
     fcSearch.addEventListener('input', (e) => {
         const query = e.target.value.toLowerCase().trim();
-        fcSelect.querySelectorAll('option').forEach(opt => {
-            if (!opt.value || opt.value === ALL_VALUE) return;
-            opt.style.display = (opt.dataset.searchText?.includes(query) || !query) ? '' : 'none';
-        });
+        showSearchResults(query);
+    });
+
+    fcSearch.addEventListener('focus', () => {
+        const query = fcSearch.value.toLowerCase().trim();
+        if (query) showSearchResults(query);
+    });
+
+    // Close dropdown when clicking outside
+    document.addEventListener('click', (e) => {
+        if (!e.target.closest('.search-box')) {
+            searchResults.classList.remove('active');
+        }
     });
 
     fcSelect.addEventListener('change', () => {
