@@ -275,80 +275,44 @@ function setupMobileBottomSheet() {
     const sidebar = document.getElementById('sidebar');
     const dragHandle = document.getElementById('drag-handle');
     let startY = 0;
-    let startTransform = 0;
     let isDragging = false;
-
-    function getTranslateY() {
-        const st = window.getComputedStyle(sidebar);
-        const matrix = new DOMMatrix(st.transform);
-        return matrix.m42;
-    }
 
     function onStart(e) {
         if (!isMobile()) return;
         isDragging = true;
         startY = e.touches ? e.touches[0].clientY : e.clientY;
-        startTransform = getTranslateY();
-        sidebar.style.transition = 'none';
     }
 
-    function onMove(e) {
-        if (!isDragging || !isMobile()) return;
-        const currentY = e.touches ? e.touches[0].clientY : e.clientY;
-        const diff = currentY - startY;
-        const newTranslate = Math.max(0, startTransform + diff);
-        sidebar.style.transform = `translateY(${newTranslate}px)`;
-    }
-
-    function onEnd() {
+    function onEnd(e) {
         if (!isDragging || !isMobile()) return;
         isDragging = false;
-        sidebar.style.transition = '';
-        const currentY = getTranslateY();
-        const sidebarHeight = sidebar.offsetHeight;
-        const threshold = sidebarHeight * 0.3;
+        const endY = e.changedTouches ? e.changedTouches[0].clientY : e.clientY;
+        const diff = endY - startY;
 
-        if (currentY < threshold) {
-            // Expand
-            sidebar.classList.add('expanded');
-            sidebar.classList.remove('minimized');
-            sidebar.classList.remove('collapsed');
-            sidebar.style.transform = '';
-        } else if (currentY > sidebarHeight - 100) {
-            // Minimized
+        if (diff > 40) {
+            // Swipe down → minimize
             sidebar.classList.add('minimized');
             sidebar.classList.remove('expanded');
-            sidebar.classList.remove('collapsed');
-            sidebar.style.transform = '';
-        } else {
-            // Peek (default)
-            sidebar.classList.remove('expanded');
+        } else if (diff < -40) {
+            // Swipe up → peek (50vh)
             sidebar.classList.remove('minimized');
             sidebar.classList.remove('collapsed');
-            sidebar.style.transform = '';
         }
     }
 
     dragHandle.addEventListener('touchstart', onStart, { passive: true });
     dragHandle.addEventListener('mousedown', onStart);
-    document.addEventListener('touchmove', onMove, { passive: false });
-    document.addEventListener('mousemove', onMove);
-    document.addEventListener('touchend', onEnd);
-    document.addEventListener('mouseup', onEnd);
+    dragHandle.addEventListener('touchend', onEnd);
+    dragHandle.addEventListener('mouseup', onEnd);
 
-    // Tap on drag handle cycles: minimized → peek → expanded → minimized
+    // Tap on drag handle toggles: minimized ↔ peek
     dragHandle.addEventListener('click', () => {
         if (!isMobile()) return;
-        if (sidebar.classList.contains('minimized')) {
-            // minimized → peek
+        if (sidebar.classList.contains('minimized') || sidebar.classList.contains('collapsed')) {
             sidebar.classList.remove('minimized');
-        } else if (sidebar.classList.contains('expanded')) {
-            // expanded → minimized
-            sidebar.classList.remove('expanded');
-            sidebar.classList.add('minimized');
+            sidebar.classList.remove('collapsed');
         } else {
-            // peek → expanded
-            sidebar.classList.add('expanded');
+            sidebar.classList.add('minimized');
         }
     });
 }
