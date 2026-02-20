@@ -105,8 +105,8 @@ html {
 }
 
 .sidebar.expanded {
-    height: 92vh;
-    max-height: 92vh;
+    height: 50vh;
+    max-height: 50vh;
     transform: translateY(0);
     overflow-y: auto;
 }
@@ -125,11 +125,6 @@ html {
     opacity: 1;
     pointer-events: auto;
     overflow: hidden;
-}
-
-/* Peek mode: show controls + center info + stats, but hide stop list */
-.sidebar:not(.expanded) .route-info {
-    display: none !important;
 }
 
 /* Minimized/Collapsed: hide everything except drag handle + mini info */
@@ -910,6 +905,7 @@ select:disabled {
         bottom: auto;
         right: auto;
         width: 380px;
+        height: auto;
         max-height: calc(100vh - 32px);
         border-radius: var(--radius);
         padding: 28px 24px;
@@ -919,6 +915,8 @@ select:disabled {
     }
 
     .sidebar.expanded {
+        height: auto;
+        max-height: calc(100vh - 32px);
         transform: none;
     }
 
