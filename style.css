@@ -79,8 +79,8 @@ html {
     bottom: 0;
     left: 0;
     right: 0;
-    width: 100%;
-    max-height: 92vh;
+    height: 50vh;
+    max-height: 50vh;
     background: var(--surface);
     backdrop-filter: blur(24px);
     -webkit-backdrop-filter: blur(24px);
@@ -96,23 +96,32 @@ html {
     overflow-y: auto;
     overflow-x: hidden;
     overscroll-behavior: contain;
-    transform: translateY(calc(100% - 50vh));
-    transition: transform 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+    -webkit-overflow-scrolling: touch;
+    transform: translateY(0);
+    transition: transform 0.35s cubic-bezier(0.4, 0, 0.2, 1),
+        height 0.35s cubic-bezier(0.4, 0, 0.2, 1),
+        max-height 0.35s cubic-bezier(0.4, 0, 0.2, 1);
     will-change: transform;
 }
 
 .sidebar.expanded {
+    height: 92vh;
+    max-height: 92vh;
     transform: translateY(0);
     overflow-y: auto;
 }
 
 .sidebar.minimized {
-    transform: translateY(calc(100% - 80px));
+    height: 80px;
+    max-height: 80px;
+    transform: translateY(0);
     overflow: hidden;
 }
 
 .sidebar.collapsed {
-    transform: translateY(calc(100% - 80px));
+    height: 80px;
+    max-height: 80px;
+    transform: translateY(0);
     opacity: 1;
     pointer-events: auto;
     overflow: hidden;
