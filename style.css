@@ -80,7 +80,7 @@ html {
     left: 0;
     right: 0;
     width: 100%;
-    max-height: 82vh;
+    max-height: 92vh;
     background: var(--surface);
     backdrop-filter: blur(24px);
     -webkit-backdrop-filter: blur(24px);
@@ -434,9 +434,6 @@ select:disabled {
     flex-direction: column;
     gap: 6px;
     margin-top: 10px;
-    max-height: 40vh;
-    overflow-y: auto;
-    overscroll-behavior: contain;
 }
 
 .stop-item {
