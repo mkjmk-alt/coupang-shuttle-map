@@ -96,7 +96,7 @@ html {
     overflow-y: auto;
     overflow-x: hidden;
     overscroll-behavior: contain;
-    transform: translateY(calc(100% - 240px));
+    transform: translateY(calc(100% - 50vh));
     transition: transform 0.35s cubic-bezier(0.4, 0, 0.2, 1);
     will-change: transform;
 }
@@ -667,7 +667,7 @@ select:disabled {
 /* ===== FLOATING ACTIONS ===== */
 .floating-actions {
     position: fixed;
-    bottom: calc(250px + var(--safe-bottom));
+    bottom: calc(50vh + 10px + var(--safe-bottom));
     right: 12px;
     display: flex;
     flex-direction: column;
