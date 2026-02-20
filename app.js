@@ -125,7 +125,7 @@ function setupEventListeners() {
 
             const center = shuttleData[fcCode].center;
             if (center) {
-                map.flyTo([center.lat, center.lng], 12, { duration: 1.2 });
+                mapFlyTo([center.lat, center.lng], 12, { duration: 1.2 });
                 addCenterMarker(center);
                 showCenterInfo(fcCode, center);
             }
@@ -192,14 +192,14 @@ function setupEventListeners() {
 
     btnRecenter.addEventListener('click', () => {
         const fcCode = fcSelect.value;
-        if (fcCode === ALL_VALUE) map.flyTo([36.5, 127.5], 7, { duration: 1 });
+        if (fcCode === ALL_VALUE) mapFlyTo([36.5, 127.5], 7, { duration: 1 });
         else if (fcCode && shuttleData[fcCode]?.center) {
             const c = shuttleData[fcCode].center;
-            map.flyTo([c.lat, c.lng], 13, { duration: 0.8 });
+            mapFlyTo([c.lat, c.lng], 13, { duration: 0.8 });
         }
     });
 
-    btnOverview.addEventListener('click', () => map.flyTo([36.5, 127.5], 7, { duration: 1 }));
+    btnOverview.addEventListener('click', () => mapFlyTo([36.5, 127.5], 7, { duration: 1 }));
 
     // Sidebar toggle — different behavior on mobile vs desktop
     sidebarToggle.addEventListener('click', () => {
@@ -234,7 +234,7 @@ function setupEventListeners() {
                     .addTo(map)
                     .bindPopup('<div class="popup-title">📍 내 현재 위치</div>')
                     .openPopup();
-                map.flyTo([lat, lng], 15, { duration: 1 });
+                mapFlyTo([lat, lng], 15, { duration: 1 });
             },
             (err) => {
                 alert('위치를 가져올 수 없습니다. 위치 권한을 허용해주세요.');
@@ -249,6 +249,35 @@ function setupEventListeners() {
 
 function isMobile() {
     return window.innerWidth <= 768;
+}
+
+// Helper: fly to a point, offsetting for the bottom sheet on mobile
+function mapFlyTo(latlng, zoom, options = {}) {
+    const targetZoom = zoom || map.getZoom();
+    if (isMobile()) {
+        const sheetPx = window.innerHeight * 0.5; // bottom sheet = 50vh
+        const point = map.project(L.latLng(latlng[0] || latlng.lat, latlng[1] || latlng.lng), targetZoom);
+        point.y += sheetPx / 2; // shift center down so target appears in visible area
+        const adjusted = map.unproject(point, targetZoom);
+        map.flyTo(adjusted, targetZoom, options);
+    } else {
+        map.flyTo(latlng, targetZoom, options);
+    }
+}
+
+// Helper: fit bounds with bottom sheet padding on mobile
+function mapFlyToBounds(bounds, options = {}) {
+    if (isMobile()) {
+        const sheetPx = window.innerHeight * 0.5;
+        const padding = options.padding || [60, 60];
+        map.flyToBounds(bounds, {
+            ...options,
+            paddingTopLeft: [padding[0], padding[1]],
+            paddingBottomRight: [padding[0], sheetPx + padding[1]]
+        });
+    } else {
+        map.flyToBounds(bounds, options);
+    }
 }
 
 function minimizeMobileSheet() {
@@ -349,7 +378,7 @@ function showAllCenters() {
     });
 
     updateStats(count, '전체', '센터', '센터 수');
-    map.flyToBounds(bounds, { padding: [60, 60], duration: 1.2 });
+    mapFlyToBounds(bounds, { padding: [60, 60], duration: 1.2 });
 }
 
 // ===== Show Multi-Route (All Shifts or All Routes) =====
@@ -450,7 +479,7 @@ function showMultiRoute(fcCode, shiftFilter) {
                 `;
                 stopEl.addEventListener('click', (e) => {
                     e.stopPropagation();
-                    map.flyTo([stop.lat, stop.lng], 16, { duration: 0.6 });
+                    mapFlyTo([stop.lat, stop.lng], 16, { duration: 0.6 });
                     dotMarkers[idx].openPopup();
                 });
                 stopsContainer.appendChild(stopEl);
@@ -486,7 +515,7 @@ function showMultiRoute(fcCode, shiftFilter) {
 
     allTimes.sort();
     updateStats(totalStops, allTimes[0] || '-', allTimes[allTimes.length - 1] || '-', '정류장');
-    map.flyToBounds(bounds, { padding: [60, 60], duration: 1 });
+    mapFlyToBounds(bounds, { padding: [60, 60], duration: 1 });
 }
 
 // ===== Toggle Route Highlight =====
@@ -569,7 +598,7 @@ function toggleRouteHighlight(routeIdx) {
     // Zoom to route bounds
     const path = rg.stops.map(s => [s.lat, s.lng]);
     const routeBounds = L.latLngBounds(path);
-    map.flyToBounds(routeBounds, { padding: [80, 80], duration: 0.8 });
+    mapFlyToBounds(routeBounds, { padding: [80, 80], duration: 0.8 });
 }
 
 // ===== Render Single Route =====
@@ -614,7 +643,7 @@ function renderSingleRoute(stops, center, routeName, color) {
             </div>
         `;
         stopItem.addEventListener('click', () => {
-            map.flyTo(latlng, 16, { duration: 0.6 });
+            mapFlyTo(latlng, 16, { duration: 0.6 });
             marker.openPopup();
             document.querySelectorAll('.stop-item').forEach(el => el.classList.remove('active'));
             stopItem.classList.add('active');
@@ -635,7 +664,7 @@ function renderSingleRoute(stops, center, routeName, color) {
     }
 
     updateStats(stops.length, stops[0]?.time || '-', stops[stops.length - 1]?.time || '-', '정류장');
-    map.flyToBounds(bounds, { padding: [60, 60], duration: 1 });
+    mapFlyToBounds(bounds, { padding: [60, 60], duration: 1 });
 }
 
 // ===== Helpers =====
