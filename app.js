@@ -226,6 +226,31 @@ function setupEventListeners() {
         }
     });
 
+    fcSelect.addEventListener('change', () => {
+        const fcCode = fcSelect.value;
+        if (!fcCode) return;
+
+        if (fcCode === ALL_VALUE) {
+            window.activeFCs = [];
+            updateFCSelection();
+            // Need to set it back to ALL_VALUE manually since it doesn't clear like search
+            fcSelect.value = ALL_VALUE;
+            return;
+        }
+
+        if (window.activeFCs.includes(fcCode)) {
+            // Already selected
+        } else if (window.activeFCs.length >= 3) {
+            alert('최대 3개의 센터까지만 선택해 비교할 수 있습니다.');
+        } else {
+            window.activeFCs.push(fcCode);
+            updateFCSelection();
+        }
+
+        // Reset the select dropdown to prompt next selection
+        fcSelect.value = '';
+    });
+
     shiftSelect.addEventListener('change', () => {
         const shift = shiftSelect.value;
         routeSelect.innerHTML = '<option value="">노선을 선택하세요</option>';
