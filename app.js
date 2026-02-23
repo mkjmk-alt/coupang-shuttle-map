@@ -195,8 +195,6 @@ function setupEventListeners() {
             el.addEventListener('click', () => {
                 if (window.activeFCs.includes(item.code)) {
                     // Already selected
-                } else if (window.activeFCs.length >= 3) {
-                    alert('최대 3개의 센터까지만 선택해 비교할 수 있습니다.');
                 } else {
                     window.activeFCs.push(item.code);
                     updateFCSelection();
@@ -240,8 +238,6 @@ function setupEventListeners() {
 
         if (window.activeFCs.includes(fcCode)) {
             // Already selected
-        } else if (window.activeFCs.length >= 3) {
-            alert('최대 3개의 센터까지만 선택해 비교할 수 있습니다.');
         } else {
             window.activeFCs.push(fcCode);
             updateFCSelection();
