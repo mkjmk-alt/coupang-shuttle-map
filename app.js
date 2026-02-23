@@ -586,14 +586,15 @@ function showMultiRoute(fcCodes, shiftFilter) {
                     color, weight: 3, opacity: 0.6, dashArray: '10, 6'
                 }).addTo(map);
 
-                // Small dot markers (no numbers initially)
+                // Small dot markers using Canvas circleMarker for performance
                 const dotMarkers = stops.map(stop => {
-                    const icon = L.divIcon({
-                        className: 'stop-icon',
-                        html: `<div class="stop-dot" style="background:${color};"></div>`,
-                        iconSize: [10, 10], iconAnchor: [5, 5]
-                    });
-                    return L.marker([stop.lat, stop.lng], { icon }).addTo(map)
+                    return L.circleMarker([stop.lat, stop.lng], {
+                        radius: 5,
+                        fillColor: color,
+                        fillOpacity: 1,
+                        color: '#ffffff',
+                        weight: 1.5
+                    }).addTo(map)
                         .bindPopup(`
                             <div class="popup-route">🚌 ${fcCodes.length > 1 ? `[${fcCode}] ` : ''}${routeName}</div>
                             <div class="popup-time">🕐 ${stop.time} · ${shiftName}</div>
@@ -618,28 +619,10 @@ function showMultiRoute(fcCodes, shiftFilter) {
                     <div class="route-expand-icon">▼</div>
                 `;
 
-                // Stops container (hidden by default)
+                // Stops container (hidden by default, LAZY RENDERED for performance)
                 const stopsContainer = document.createElement('div');
                 stopsContainer.className = 'route-stops-container collapsed';
-
-                stops.forEach((stop, idx) => {
-                    const stopEl = document.createElement('div');
-                    stopEl.className = 'stop-item nested';
-                    stopEl.innerHTML = `
-                        <div class="stop-number" style="background:${color};">${idx + 1}</div>
-                        <div class="stop-content">
-                            <div class="stop-time">🕐 ${stop.time}</div>
-                            <div class="stop-name">${stop.name}</div>
-                            <div class="stop-addr">${stop.address}</div>
-                        </div>
-                    `;
-                    stopEl.addEventListener('click', (e) => {
-                        e.stopPropagation();
-                        mapFlyTo([stop.lat, stop.lng], 16, { duration: 0.6 });
-                        dotMarkers[idx].openPopup();
-                    });
-                    stopsContainer.appendChild(stopEl);
-                });
+                stopsContainer.dataset.rendered = "false"; // flag for lazy loading
 
                 routeContainer.appendChild(routeHeader);
                 routeContainer.appendChild(stopsContainer);
@@ -689,8 +672,10 @@ function toggleRouteHighlight(routeIdx) {
 
         // Reset dot markers - show/dim
         rg.dotMarkers.forEach(m => {
-            const el = m.getElement();
-            if (el) el.style.opacity = isDeselecting ? '1' : '0.15';
+            m.setStyle({
+                fillOpacity: isDeselecting ? 1 : 0.2,
+                opacity: isDeselecting ? 1 : 0.2
+            });
         });
 
         // Remove numbered markers
@@ -720,8 +705,7 @@ function toggleRouteHighlight(routeIdx) {
 
     // Show dot markers fully
     rg.dotMarkers.forEach(m => {
-        const el = m.getElement();
-        if (el) el.style.opacity = '1';
+        m.setStyle({ fillOpacity: 1, opacity: 1 });
     });
 
     // Add numbered markers
@@ -744,6 +728,29 @@ function toggleRouteHighlight(routeIdx) {
 
     // Highlight header
     rg.routeHeader.classList.add('active');
+
+    // Lazy render DOM stops if not already rendered
+    if (rg.stopsContainer.dataset.rendered === "false") {
+        rg.stops.forEach((stop, idx) => {
+            const stopEl = document.createElement('div');
+            stopEl.className = 'stop-item nested';
+            stopEl.innerHTML = `
+                <div class="stop-number" style="background:${rg.color};">${idx + 1}</div>
+                <div class="stop-content">
+                    <div class="stop-time">🕐 ${stop.time}</div>
+                    <div class="stop-name">${stop.name}</div>
+                    <div class="stop-addr">${stop.address}</div>
+                </div>
+            `;
+            stopEl.addEventListener('click', (e) => {
+                e.stopPropagation();
+                mapFlyTo([stop.lat, stop.lng], 16, { duration: 0.6 });
+                rg.dotMarkers[idx].openPopup();
+            });
+            rg.stopsContainer.appendChild(stopEl);
+        });
+        rg.stopsContainer.dataset.rendered = "true";
+    }
 
     // Expand stops
     rg.stopsContainer.classList.remove('collapsed');
