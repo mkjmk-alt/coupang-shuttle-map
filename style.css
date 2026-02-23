@@ -166,6 +166,30 @@ html {
     border-radius: 10px;
 }
 
+/* Leaflet tooltips */
+.leaflet-tooltip {
+    font-family: 'Pretendard', -apple-system, sans-serif;
+    border-radius: 6px;
+    border: none;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.center-label-tooltip {
+    background-color: #EF4444;
+    color: white;
+    border: none;
+    border-radius: 6px;
+    padding: 6px 10px;
+    font-weight: 700;
+    box-shadow: 0 4px 10px rgba(239, 68, 68, 0.4);
+    font-size: 13px;
+    letter-spacing: -0.3px;
+}
+
+.leaflet-tooltip-top.center-label-tooltip::before {
+    border-top-color: #EF4444;
+}
+
 /* ===== DRAG HANDLE ===== */
 .drag-handle {
     display: flex;
