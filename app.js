@@ -164,17 +164,17 @@ function setupEventListeners() {
             const center = shuttleData[fcCode].center;
             if (center) {
                 mapFlyTo([center.lat, center.lng], 12, { duration: 1.2 });
-                addCenterMarker(center);
+                addCenterMarker(fcCode, center);
                 showCenterInfo(fcCode, center);
             }
         } else {
             hideCenterInfo();
             const bounds = L.latLngBounds();
-            activeFCs.forEach(fc => {
-                const center = shuttleData[fc]?.center;
+            activeFCs.forEach(fcCode => {
+                const center = shuttleData[fcCode]?.center;
                 if (center) {
                     bounds.extend([center.lat, center.lng]);
-                    addCenterMarker(center);
+                    addCenterMarker(fcCode, center);
                 }
             });
             mapFlyToBounds(bounds, { padding: [60, 60], duration: 1.2 });
@@ -731,31 +731,6 @@ function toggleRouteHighlight(routeIdx) {
     // Highlight header
     rg.routeHeader.classList.add('active');
 
-    // Add red center marker and connecting line
-    if (rg.center && rg.stops.length > 0) {
-        const lastStop = rg.stops[rg.stops.length - 1];
-        const connLine = L.polyline([[rg.center.lat, rg.center.lng], [lastStop.lat, lastStop.lng]], {
-            color: '#EF4444', weight: 4, opacity: 0.6, dashArray: '6, 10'
-        }).addTo(map);
-        rg.numberedMarkers.push(connLine);
-
-        const centerIcon = L.divIcon({
-            className: 'center-icon highlighted-center',
-            html: '<div class="center-marker-inner" style="background-color:#EF4444; border-color:white; box-shadow:0 0 0 3px rgba(239, 68, 68, 0.4);"></div>',
-            iconSize: [28, 28], iconAnchor: [14, 14]
-        });
-        const centerMarker = L.marker([rg.center.lat, rg.center.lng], { icon: centerIcon, zIndexOffset: 2000 })
-            .addTo(map)
-            .bindTooltip(`🏢 ${rg.center.name || rg.fcCode}`, {
-                permanent: true, direction: 'top', className: 'center-label-tooltip', offset: [0, -14]
-            })
-            .bindPopup(`
-                <div class="popup-title">📍 ${rg.center.name || rg.fcCode}</div>
-                <div class="popup-addr">${rg.center.address || ''}</div>
-            `);
-        rg.numberedMarkers.push(centerMarker);
-    }
-
     // Lazy render DOM stops if not already rendered
     if (rg.stopsContainer.dataset.rendered === "false") {
         rg.stops.forEach((stop, idx) => {
@@ -867,25 +842,8 @@ function renderSingleRoute(stops, center, routeName, color, fcCode) {
         }).addTo(map);
         currentMarkers.push(connLine);
 
-        const centerIcon = L.divIcon({
-            className: 'center-icon highlighted-center',
-            html: '<div class="center-marker-inner" style="background-color:#EF4444; border-color:white; box-shadow:0 0 0 3px rgba(239, 68, 68, 0.4);"></div>',
-            iconSize: [28, 28], iconAnchor: [14, 14]
-        });
-
-        const centerMarkerName = center.name || fcCode || '도착 센터';
-        const centerMarker = L.marker([center.lat, center.lng], { icon: centerIcon, zIndexOffset: 2000 }).addTo(map)
-            .bindTooltip(`🏢 ${centerMarkerName}`, {
-                permanent: true,
-                direction: 'top',
-                className: 'center-label-tooltip',
-                offset: [0, -14]
-            })
-            .bindPopup(`
-                <div class="popup-title">📍 ${centerMarkerName}</div>
-                <div class="popup-addr">${center.address || ''}</div>
-            `);
-        currentMarkers.push(centerMarker);
+        // Intentionally no longer drawing the red center marker here
+        // It is now permanently drawn via addCenterMarker() when the center is selected
     }
 
     updateStats(stops.length, stops[0]?.time || '-', stops[stops.length - 1]?.time || '-', '정류장');
@@ -893,18 +851,25 @@ function renderSingleRoute(stops, center, routeName, color, fcCode) {
 }
 
 // ===== Helpers =====
-function addCenterMarker(center) {
-    centerMarkers.forEach(m => map.removeLayer(m));
-    centerMarkers = [];
-    const icon = L.divIcon({
-        className: 'center-icon',
-        html: '<div class="center-marker-inner"></div>',
-        iconSize: [32, 32], iconAnchor: [16, 16]
+function addCenterMarker(fcCode, center) {
+    const centerIcon = L.divIcon({
+        className: 'center-icon highlighted-center',
+        html: '<div class="center-marker-inner" style="background-color:#EF4444; border-color:white; box-shadow:0 0 0 3px rgba(239, 68, 68, 0.4);"></div>',
+        iconSize: [28, 28], iconAnchor: [14, 14]
     });
-    const marker = L.marker([center.lat, center.lng], { icon }).addTo(map).bindPopup(`
-        <div class="popup-title">📍 ${center.name}</div>
-        <div class="popup-addr">${center.address}</div>
-    `);
+
+    const centerMarkerName = center.name || fcCode || '도착 센터';
+    const marker = L.marker([center.lat, center.lng], { icon: centerIcon, zIndexOffset: 2000 }).addTo(map)
+        .bindTooltip(`🏢 ${centerMarkerName}`, {
+            permanent: true,
+            direction: 'top',
+            className: 'center-label-tooltip',
+            offset: [0, -14]
+        })
+        .bindPopup(`
+            <div class="popup-title">📍 ${centerMarkerName}</div>
+            <div class="popup-addr">${center.address || ''}</div>
+        `);
     centerMarkers.push(marker);
 }
 
