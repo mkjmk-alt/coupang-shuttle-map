@@ -94,6 +94,82 @@ function setupEventListeners() {
         searchText: `${fc} ${shuttleData[fc].center?.name || ''}`.toLowerCase()
     }));
 
+    window.activeFCs = [];
+
+    function updateFCSelection() {
+        const chipsContainer = document.getElementById('selection-chips');
+        chipsContainer.innerHTML = '';
+
+        activeFCs.forEach(fc => {
+            const chip = document.createElement('div');
+            chip.className = 'chip';
+            chip.innerHTML = `<span>${fc}</span><div class="chip-close">&times;</div>`;
+            chip.querySelector('.chip-close').onclick = () => {
+                window.activeFCs = window.activeFCs.filter(c => c !== fc);
+                updateFCSelection();
+            };
+            chipsContainer.appendChild(chip);
+        });
+
+        clearAll();
+        shiftSelect.innerHTML = '<option value="">근무조를 선택하세요</option>';
+        routeSelect.innerHTML = '<option value="">노선을 선택하세요</option>';
+        routeSelect.disabled = true;
+        hideCenterInfo();
+        updateMiniInfo();
+
+        if (activeFCs.length === 0) {
+            shiftSelect.disabled = true;
+            showAllCenters();
+            return;
+        }
+
+        shiftSelect.disabled = false;
+        const allShifts = new Set();
+        activeFCs.forEach(fc => {
+            if (shuttleData[fc]?.shifts) {
+                Object.keys(shuttleData[fc].shifts).forEach(s => allShifts.add(s));
+            }
+        });
+
+        const allShiftOpt = document.createElement('option');
+        allShiftOpt.value = ALL_VALUE;
+        allShiftOpt.textContent = '⭐ 전체 근무조';
+        shiftSelect.appendChild(allShiftOpt);
+
+        Array.from(allShifts).sort().forEach(shift => {
+            const option = document.createElement('option');
+            option.value = shift;
+            option.textContent = shift;
+            shiftSelect.appendChild(option);
+        });
+
+        if (activeFCs.length === 1) {
+            const fcCode = activeFCs[0];
+            const center = shuttleData[fcCode].center;
+            if (center) {
+                mapFlyTo([center.lat, center.lng], 12, { duration: 1.2 });
+                addCenterMarker(center);
+                showCenterInfo(fcCode, center);
+            }
+        } else {
+            hideCenterInfo();
+            const bounds = L.latLngBounds();
+            activeFCs.forEach(fc => {
+                const center = shuttleData[fc]?.center;
+                if (center) {
+                    bounds.extend([center.lat, center.lng]);
+                    addCenterMarker(center);
+                }
+            });
+            mapFlyToBounds(bounds, { padding: [60, 60], duration: 1.2 });
+        }
+
+        // Auto select best state
+        shiftSelect.value = ALL_VALUE;
+        shiftSelect.dispatchEvent(new Event('change'));
+    }
+
     function showSearchResults(query) {
         searchResults.innerHTML = '';
         if (!query) {
@@ -117,8 +193,14 @@ function setupEventListeners() {
                 <span class="search-result-name">${item.name}</span>
             `;
             el.addEventListener('click', () => {
-                fcSelect.value = item.code;
-                fcSelect.dispatchEvent(new Event('change'));
+                if (window.activeFCs.includes(item.code)) {
+                    // Already selected
+                } else if (window.activeFCs.length >= 3) {
+                    alert('최대 3개의 센터까지만 선택해 비교할 수 있습니다.');
+                } else {
+                    window.activeFCs.push(item.code);
+                    updateFCSelection();
+                }
                 fcSearch.value = '';
                 searchResults.classList.remove('active');
             });
@@ -144,104 +226,74 @@ function setupEventListeners() {
         }
     });
 
-    fcSelect.addEventListener('change', () => {
-        const fcCode = fcSelect.value;
-        shiftSelect.innerHTML = '<option value="">근무조를 선택하세요</option>';
-        routeSelect.innerHTML = '<option value="">노선을 선택하세요</option>';
-        routeSelect.disabled = true;
-        clearAll();
-        hideCenterInfo();
-
-        if (fcCode === ALL_VALUE) {
-            shiftSelect.disabled = true;
-            routeSelect.disabled = true;
-            showAllCenters();
-            return;
-        }
-
-        if (fcCode && shuttleData[fcCode]) {
-            shiftSelect.disabled = false;
-            const allShiftOpt = document.createElement('option');
-            allShiftOpt.value = ALL_VALUE;
-            allShiftOpt.textContent = '⭐ 전체 근무조';
-            shiftSelect.appendChild(allShiftOpt);
-
-            Object.keys(shuttleData[fcCode].shifts).forEach(shift => {
-                const option = document.createElement('option');
-                option.value = shift;
-                option.textContent = shift;
-                shiftSelect.appendChild(option);
-            });
-
-            const center = shuttleData[fcCode].center;
-            if (center) {
-                mapFlyTo([center.lat, center.lng], 12, { duration: 1.2 });
-                addCenterMarker(center);
-                showCenterInfo(fcCode, center);
-            }
-        } else {
-            shiftSelect.disabled = true;
-        }
-    });
-
     shiftSelect.addEventListener('change', () => {
-        const fcCode = fcSelect.value;
         const shift = shiftSelect.value;
         routeSelect.innerHTML = '<option value="">노선을 선택하세요</option>';
         clearRoute();
 
         if (shift === ALL_VALUE) {
             routeSelect.disabled = true;
-            showMultiRoute(fcCode, null);
+            showMultiRoute(window.activeFCs, null);
             return;
         }
 
-        if (shift && shuttleData[fcCode]?.shifts[shift]) {
+        if (shift) {
             routeSelect.disabled = false;
             const allRouteOpt = document.createElement('option');
             allRouteOpt.value = ALL_VALUE;
             allRouteOpt.textContent = '⭐ 전체 노선';
             routeSelect.appendChild(allRouteOpt);
 
-            Object.keys(shuttleData[fcCode].shifts[shift]).forEach(route => {
-                const option = document.createElement('option');
-                option.value = route;
-                option.textContent = route;
-                routeSelect.appendChild(option);
+            window.activeFCs.forEach(fc => {
+                if (shuttleData[fc]?.shifts[shift]) {
+                    Object.keys(shuttleData[fc].shifts[shift]).forEach(route => {
+                        const option = document.createElement('option');
+                        option.value = `${fc}::${route}`;
+                        option.textContent = window.activeFCs.length > 1 ? `[${fc}] ${route}` : route;
+                        routeSelect.appendChild(option);
+                    });
+                }
             });
 
-            // Auto-select "전체 노선" and show all routes
             routeSelect.value = ALL_VALUE;
-            showMultiRoute(fcCode, shift);
+            showMultiRoute(window.activeFCs, shift);
         } else {
             routeSelect.disabled = true;
         }
     });
 
     routeSelect.addEventListener('change', () => {
-        const fcCode = fcSelect.value;
         const shift = shiftSelect.value;
-        const route = routeSelect.value;
+        const routeVal = routeSelect.value;
         clearRoute();
 
-        if (route === ALL_VALUE) {
-            showMultiRoute(fcCode, shift);
+        if (routeVal === ALL_VALUE) {
+            showMultiRoute(window.activeFCs, shift);
             return;
         }
 
-        if (route) {
+        if (routeVal) {
+            const [fcCode, route] = routeVal.split('::');
             const stops = shuttleData[fcCode].shifts[shift][route];
             const center = shuttleData[fcCode].center;
-            renderSingleRoute(stops, center, route, '#4F46E5');
+            // Draw route with a specific color
+            renderSingleRoute(stops, center, route, '#4F46E5', fcCode);
         }
     });
 
     btnRecenter.addEventListener('click', () => {
-        const fcCode = fcSelect.value;
-        if (fcCode === ALL_VALUE) mapFlyTo([36.5, 127.5], 7, { duration: 1 });
-        else if (fcCode && shuttleData[fcCode]?.center) {
-            const c = shuttleData[fcCode].center;
-            mapFlyTo([c.lat, c.lng], 13, { duration: 0.8 });
+        if (!window.activeFCs || window.activeFCs.length === 0) {
+            mapFlyTo([36.5, 127.5], 7, { duration: 1 });
+        } else if (window.activeFCs.length === 1) {
+            const c = shuttleData[window.activeFCs[0]]?.center;
+            if (c) mapFlyTo([c.lat, c.lng], 13, { duration: 0.8 });
+        } else {
+            const bounds = L.latLngBounds();
+            window.activeFCs.forEach(fc => {
+                const c = shuttleData[fc]?.center;
+                if (c) bounds.extend([c.lat, c.lng]);
+            });
+            mapFlyToBounds(bounds, { padding: [60, 60], duration: 0.8 });
         }
     });
 
@@ -337,10 +389,16 @@ function minimizeMobileSheet() {
 
 function updateMiniInfo() {
     const miniInfo = document.getElementById('mini-info');
-    const fcSelect = document.getElementById('fc-select');
-    if (miniInfo && fcSelect && fcSelect.value && fcSelect.value !== '__ALL__') {
-        const selectedText = fcSelect.options[fcSelect.selectedIndex]?.text || '';
-        miniInfo.textContent = '🚌 ' + selectedText + ' — 탭하여 열기';
+    if (!miniInfo) return;
+
+    if (window.activeFCs && window.activeFCs.length > 0) {
+        if (window.activeFCs.length > 1) {
+            miniInfo.textContent = `🚌 ${window.activeFCs.length}개 센터 비교 중 — 탭하여 열기`;
+        } else {
+            const fcCode = window.activeFCs[0];
+            const name = shuttleData[fcCode]?.center?.name || fcCode;
+            miniInfo.textContent = `🚌 ${fcCode} ${name} — 탭하여 열기`;
+        }
     } else {
         miniInfo.textContent = '위로 밀어 올려 센터를 선택하세요';
     }
@@ -428,10 +486,9 @@ function showAllCenters() {
 }
 
 // ===== Show Multi-Route (All Shifts or All Routes) =====
-function showMultiRoute(fcCode, shiftFilter) {
+function showMultiRoute(fcCodes, shiftFilter) {
     clearRoute();
-    const fc = shuttleData[fcCode];
-    if (!fc) return;
+    if (!fcCodes || fcCodes.length === 0) return;
 
     const bounds = L.latLngBounds();
     const stopListEl = document.getElementById('stop-list');
@@ -440,128 +497,147 @@ function showMultiRoute(fcCode, shiftFilter) {
     routeDetailsEl.style.display = 'block';
     document.getElementById('route-stats').style.display = 'flex';
 
-    if (fc.center) bounds.extend([fc.center.lat, fc.center.lng]);
-
     routeLayerGroups = [];
     activeRouteIndex = -1;
     let colorIndex = 0;
     let totalStops = 0;
     let allTimes = [];
 
-    const shiftsToShow = shiftFilter
-        ? { [shiftFilter]: fc.shifts[shiftFilter] }
-        : fc.shifts;
+    fcCodes.forEach(fcCode => {
+        const fc = shuttleData[fcCode];
+        if (!fc) return;
 
-    Object.entries(shiftsToShow).forEach(([shiftName, routes]) => {
-        // Shift header (only show when multiple shifts)
-        if (!shiftFilter) {
-            const shiftHeader = document.createElement('div');
-            shiftHeader.className = 'list-section-header';
-            shiftHeader.innerHTML = `<span class="section-icon">🕐</span> ${shiftName} <span class="section-badge">${Object.keys(routes).length}개 노선</span>`;
-            stopListEl.appendChild(shiftHeader);
+        if (fc.center) bounds.extend([fc.center.lat, fc.center.lng]);
+
+        const shiftsToShow = shiftFilter && fc.shifts[shiftFilter]
+            ? { [shiftFilter]: fc.shifts[shiftFilter] }
+            : fc.shifts;
+
+        if (Object.keys(shiftsToShow).length === 0) return;
+
+        // If comparing multiple FCs, add a center separator
+        if (fcCodes.length > 1) {
+            const fcHeader = document.createElement('div');
+            fcHeader.className = 'list-section-header';
+            fcHeader.style.background = 'rgba(79, 70, 229, 0.15)';
+            fcHeader.style.color = 'var(--primary)';
+            fcHeader.style.fontWeight = '800';
+            fcHeader.style.marginTop = '16px';
+            fcHeader.innerHTML = `<span class="section-icon">🏢</span> [${fcCode}] ${fc.center?.name || ''}`;
+            stopListEl.appendChild(fcHeader);
         }
 
-        Object.entries(routes).forEach(([routeName, stops]) => {
-            const color = ROUTE_COLORS[colorIndex % ROUTE_COLORS.length];
-            const routeIdx = routeLayerGroups.length;
-            colorIndex++;
-            totalStops += stops.length;
-            stops.forEach(s => { if (s.time) allTimes.push(s.time); });
+        Object.entries(shiftsToShow).forEach(([shiftName, routes]) => {
+            // Shift header
+            if (!shiftFilter) {
+                const shiftHeader = document.createElement('div');
+                shiftHeader.className = 'list-section-header';
+                shiftHeader.innerHTML = `<span class="section-icon">🕐</span> ${shiftName} <span class="section-badge">${Object.keys(routes).length}개 노선</span>`;
+                stopListEl.appendChild(shiftHeader);
+            }
 
-            // Draw polyline
-            const path = stops.map(s => [s.lat, s.lng]);
-            path.forEach(p => bounds.extend(p));
+            Object.entries(routes).forEach(([routeName, stops]) => {
+                const color = ROUTE_COLORS[colorIndex % ROUTE_COLORS.length];
+                const routeIdx = routeLayerGroups.length;
+                colorIndex++;
+                totalStops += stops.length;
+                stops.forEach(s => { if (s.time) allTimes.push(s.time); });
 
-            const polyline = L.polyline(path, {
-                color, weight: 3, opacity: 0.6, dashArray: '10, 6'
-            }).addTo(map);
+                // Draw polyline
+                const path = stops.map(s => [s.lat, s.lng]);
+                path.forEach(p => bounds.extend(p));
 
-            // Small dot markers (no numbers initially)
-            const dotMarkers = stops.map(stop => {
-                const icon = L.divIcon({
-                    className: 'stop-icon',
-                    html: `<div class="stop-dot" style="background:${color};"></div>`,
-                    iconSize: [10, 10], iconAnchor: [5, 5]
+                const polyline = L.polyline(path, {
+                    color, weight: 3, opacity: 0.6, dashArray: '10, 6'
+                }).addTo(map);
+
+                // Small dot markers (no numbers initially)
+                const dotMarkers = stops.map(stop => {
+                    const icon = L.divIcon({
+                        className: 'stop-icon',
+                        html: `<div class="stop-dot" style="background:${color};"></div>`,
+                        iconSize: [10, 10], iconAnchor: [5, 5]
+                    });
+                    return L.marker([stop.lat, stop.lng], { icon }).addTo(map)
+                        .bindPopup(`
+                            <div class="popup-route">🚌 ${fcCodes.length > 1 ? `[${fcCode}] ` : ''}${routeName}</div>
+                            <div class="popup-time">🕐 ${stop.time} · ${shiftName}</div>
+                            <div class="popup-title">${stop.name}</div>
+                            <div class="popup-addr">${stop.address}</div>
+                        `);
                 });
-                return L.marker([stop.lat, stop.lng], { icon }).addTo(map)
-                    .bindPopup(`
-                        <div class="popup-route">🚌 ${routeName}</div>
-                        <div class="popup-time">🕐 ${stop.time} · ${shiftName}</div>
-                        <div class="popup-title">${stop.name}</div>
-                        <div class="popup-addr">${stop.address}</div>
-                    `);
-            });
 
-            // Route header in sidebar (collapsible)
-            const routeContainer = document.createElement('div');
-            routeContainer.className = 'route-group';
+                // Route header in sidebar (collapsible)
+                const routeContainer = document.createElement('div');
+                routeContainer.className = 'route-group';
 
-            const routeHeader = document.createElement('div');
-            routeHeader.className = 'route-header';
-            routeHeader.dataset.routeIdx = routeIdx;
-            routeHeader.innerHTML = `
-                <div class="route-color-bar" style="background:${color};"></div>
-                <div class="route-header-content">
-                    <div class="route-header-title">🚌 ${routeName}</div>
-                    <div class="route-header-meta">${stops.length}개 정류장 · ${stops[0]?.time || ''} ~ ${stops[stops.length - 1]?.time || ''}</div>
-                </div>
-                <div class="route-expand-icon">▼</div>
-            `;
-
-            // Stops container (hidden by default)
-            const stopsContainer = document.createElement('div');
-            stopsContainer.className = 'route-stops-container collapsed';
-
-            stops.forEach((stop, idx) => {
-                const stopEl = document.createElement('div');
-                stopEl.className = 'stop-item nested';
-                stopEl.innerHTML = `
-                    <div class="stop-number" style="background:${color};">${idx + 1}</div>
-                    <div class="stop-content">
-                        <div class="stop-time">🕐 ${stop.time}</div>
-                        <div class="stop-name">${stop.name}</div>
-                        <div class="stop-addr">${stop.address}</div>
+                const routeHeader = document.createElement('div');
+                routeHeader.className = 'route-header';
+                routeHeader.dataset.routeIdx = routeIdx;
+                routeHeader.innerHTML = `
+                    <div class="route-color-bar" style="background:${color};"></div>
+                    <div class="route-header-content">
+                        <div class="route-header-title">🚌 ${routeName}</div>
+                        <div class="route-header-meta">${stops.length}개 정류장 · ${stops[0]?.time || ''} ~ ${stops[stops.length - 1]?.time || ''}</div>
                     </div>
+                    <div class="route-expand-icon">▼</div>
                 `;
-                stopEl.addEventListener('click', (e) => {
-                    e.stopPropagation();
-                    mapFlyTo([stop.lat, stop.lng], 16, { duration: 0.6 });
-                    dotMarkers[idx].openPopup();
+
+                // Stops container (hidden by default)
+                const stopsContainer = document.createElement('div');
+                stopsContainer.className = 'route-stops-container collapsed';
+
+                stops.forEach((stop, idx) => {
+                    const stopEl = document.createElement('div');
+                    stopEl.className = 'stop-item nested';
+                    stopEl.innerHTML = `
+                        <div class="stop-number" style="background:${color};">${idx + 1}</div>
+                        <div class="stop-content">
+                            <div class="stop-time">🕐 ${stop.time}</div>
+                            <div class="stop-name">${stop.name}</div>
+                            <div class="stop-addr">${stop.address}</div>
+                        </div>
+                    `;
+                    stopEl.addEventListener('click', (e) => {
+                        e.stopPropagation();
+                        mapFlyTo([stop.lat, stop.lng], 16, { duration: 0.6 });
+                        dotMarkers[idx].openPopup();
+                    });
+                    stopsContainer.appendChild(stopEl);
                 });
-                stopsContainer.appendChild(stopEl);
+
+                routeContainer.appendChild(routeHeader);
+                routeContainer.appendChild(stopsContainer);
+                stopListEl.appendChild(routeContainer);
+
+                // Store route group data
+                routeLayerGroups.push({
+                    name: routeName,
+                    color,
+                    polyline,
+                    dotMarkers,
+                    stops,
+                    shiftName,
+                    routeHeader,
+                    stopsContainer,
+                    numberedMarkers: [] // created on highlight
+                });
+
+                // Click handler for route header
+                routeHeader.addEventListener('click', () => {
+                    toggleRouteHighlight(routeIdx);
+                });
+
+                // Track for cleanup
+                currentPolylines.push(polyline);
+                currentMarkers.push(...dotMarkers);
             });
-
-            routeContainer.appendChild(routeHeader);
-            routeContainer.appendChild(stopsContainer);
-            stopListEl.appendChild(routeContainer);
-
-            // Store route group data
-            routeLayerGroups.push({
-                name: routeName,
-                color,
-                polyline,
-                dotMarkers,
-                stops,
-                shiftName,
-                routeHeader,
-                stopsContainer,
-                numberedMarkers: [] // created on highlight
-            });
-
-            // Click handler for route header
-            routeHeader.addEventListener('click', () => {
-                toggleRouteHighlight(routeIdx);
-            });
-
-            // Track for cleanup
-            currentPolylines.push(polyline);
-            currentMarkers.push(...dotMarkers);
         });
     });
 
     allTimes.sort();
     updateStats(totalStops, allTimes[0] || '-', allTimes[allTimes.length - 1] || '-', '정류장');
-    mapFlyToBounds(bounds, { padding: [60, 60], duration: 1 });
+    if (bounds.isValid()) mapFlyToBounds(bounds, { padding: [60, 60], duration: 1 });
 }
 
 // ===== Toggle Route Highlight =====
@@ -648,7 +724,7 @@ function toggleRouteHighlight(routeIdx) {
 }
 
 // ===== Render Single Route =====
-function renderSingleRoute(stops, center, routeName, color) {
+function renderSingleRoute(stops, center, routeName, color, fcCode) {
     const bounds = L.latLngBounds();
     const path = [];
     const stopListEl = document.getElementById('stop-list');
@@ -659,6 +735,18 @@ function renderSingleRoute(stops, center, routeName, color) {
 
     if (center) bounds.extend([center.lat, center.lng]);
 
+    // If multiple FCs, show a header so users know which FC this route is for
+    if (window.activeFCs && window.activeFCs.length > 1 && fcCode) {
+        const fcHeader = document.createElement('div');
+        fcHeader.className = 'list-section-header';
+        fcHeader.style.background = 'rgba(79, 70, 229, 0.15)';
+        fcHeader.style.color = 'var(--primary)';
+        fcHeader.style.fontWeight = '800';
+        fcHeader.style.marginTop = '16px';
+        fcHeader.innerHTML = `<span class="section-icon">🏢</span> [${fcCode}] 정류장 안내`;
+        stopListEl.appendChild(fcHeader);
+    }
+
     stops.forEach((stop, index) => {
         const latlng = [stop.lat, stop.lng];
         path.push(latlng);
@@ -666,12 +754,14 @@ function renderSingleRoute(stops, center, routeName, color) {
 
         const icon = L.divIcon({
             className: 'stop-icon',
-            html: `<div class="stop-marker-inner">${index + 1}</div>`,
+            html: `<div class="stop-marker-inner" style="background:${color};">${index + 1}</div>`,
             iconSize: [26, 26], iconAnchor: [13, 13]
         });
 
+        const routePrefix = (window.activeFCs && window.activeFCs.length > 1 && fcCode) ? `[${fcCode}] ` : '';
+
         const marker = L.marker(latlng, { icon }).addTo(map).bindPopup(`
-            <div class="popup-route">🚌 ${routeName}</div>
+            <div class="popup-route">🚌 ${routePrefix}${routeName}</div>
             <div class="popup-time">🕐 ${stop.time} 출발</div>
             <div class="popup-title">${index + 1}. ${stop.name}</div>
             <div class="popup-addr">${stop.address}</div>

@@ -319,6 +319,45 @@ html {
     color: var(--text-muted);
 }
 
+/* ===== SELECTION CHIPS ===== */
+.selection-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: -4px;
+}
+
+.chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 10px;
+    background: rgba(79, 70, 229, 0.15);
+    border: 1px solid rgba(79, 70, 229, 0.3);
+    border-radius: 16px;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--primary-light);
+}
+
+.chip-close {
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    background: rgba(0, 0, 0, 0.2);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    font-size: 10px;
+    color: white;
+    transition: background 0.2s;
+}
+
+.chip-close:hover {
+    background: rgba(0, 0, 0, 0.4);
+}
+
 /* ===== CONTROLS ===== */
 .controls {
     display: flex;
