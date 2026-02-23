@@ -111,6 +111,21 @@ function setupEventListeners() {
             chipsContainer.appendChild(chip);
         });
 
+        if (activeFCs.length > 1) {
+            const clearBtn = document.createElement('div');
+            clearBtn.className = 'chip';
+            clearBtn.style.background = 'var(--bg-card)';
+            clearBtn.style.borderColor = '#EF4444';
+            clearBtn.style.color = '#EF4444';
+            clearBtn.style.cursor = 'pointer';
+            clearBtn.innerHTML = `<span>🔄 초기화</span>`;
+            clearBtn.onclick = () => {
+                window.activeFCs = [];
+                updateFCSelection();
+            };
+            chipsContainer.prepend(clearBtn);
+        }
+
         clearAll();
         shiftSelect.innerHTML = '<option value="">근무조를 선택하세요</option>';
         routeSelect.innerHTML = '<option value="">노선을 선택하세요</option>';
@@ -229,10 +244,9 @@ function setupEventListeners() {
         if (!fcCode) return;
 
         if (fcCode === ALL_VALUE) {
-            window.activeFCs = [];
+            window.activeFCs = Object.keys(shuttleData).filter(fc => shuttleData[fc] && shuttleData[fc].shifts);
             updateFCSelection();
-            // Need to set it back to ALL_VALUE manually since it doesn't clear like search
-            fcSelect.value = ALL_VALUE;
+            fcSelect.value = '';
             return;
         }
 
