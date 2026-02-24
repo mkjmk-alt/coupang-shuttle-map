@@ -201,10 +201,8 @@ function setupEventListeners() {
             if (center) {
                 mapFlyTo([center.lat, center.lng], 12, { duration: 1.2 });
                 addCenterMarker(fcCode, center);
-                showCenterInfo(fcCode, center);
             }
         } else {
-            hideCenterInfo();
             const bounds = L.latLngBounds();
             activeFCs.forEach(fcCode => {
                 const center = shuttleData[fcCode]?.center;
@@ -214,6 +212,19 @@ function setupEventListeners() {
                 }
             });
             mapFlyToBounds(bounds, { padding: [60, 60], duration: 1.2 });
+        }
+
+        // Always show center info for the most recently selected center
+        if (activeFCs.length > 0) {
+            const lastFcCode = activeFCs[activeFCs.length - 1];
+            const lastCenter = shuttleData[lastFcCode]?.center;
+            if (lastCenter) {
+                showCenterInfo(lastFcCode, lastCenter);
+            } else {
+                hideCenterInfo();
+            }
+        } else {
+            hideCenterInfo();
         }
 
         // Auto select best state
@@ -566,7 +577,7 @@ function showMultiRoute(fcCodes, shiftFilter) {
     const routeDetailsEl = document.getElementById('route-details');
     stopListEl.innerHTML = '';
     routeDetailsEl.style.display = 'block';
-    document.getElementById('route-stats').style.display = 'flex';
+    document.getElementById('route-stats').style.display = 'none';
 
     routeLayerGroups = [];
     activeRouteIndex = -1;
@@ -813,7 +824,7 @@ function renderSingleRoute(stops, center, routeName, color, fcCode) {
     const routeDetailsEl = document.getElementById('route-details');
     stopListEl.innerHTML = '';
     routeDetailsEl.style.display = 'block';
-    document.getElementById('route-stats').style.display = 'flex';
+    document.getElementById('route-stats').style.display = 'none';
 
     if (center) bounds.extend([center.lat, center.lng]);
 
