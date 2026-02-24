@@ -964,11 +964,9 @@ function showCenterInfo(fcCode, center) {
     const fcLower = fcCode.toLowerCase();
     shuttleLink.href = `https://coufc.coupang.com/${fcLower}`;
 
-    // Extract short center name (e.g. "고양1센터" from "고양1센터 (GOY1)")
-    const shortName = (center.name || fcCode).replace(/\s*\(.*\)\s*$/, '');
     shuttleLink.innerHTML = `
         <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><line x1="3" y1="9" x2="21" y2="9"></line><line x1="9" y1="21" x2="9" y2="9"></line></svg>
-        ${shortName} 홈페이지
+        셔틀 홈페이지
     `;
 
     // Naver Maps search
