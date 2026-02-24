@@ -586,15 +586,14 @@ function showMultiRoute(fcCodes, shiftFilter) {
                     color, weight: 3, opacity: 0.6, dashArray: '10, 6'
                 }).addTo(map);
 
-                // Small dot markers using Canvas circleMarker for performance
-                const dotMarkers = stops.map(stop => {
-                    return L.circleMarker([stop.lat, stop.lng], {
-                        radius: 5,
-                        fillColor: color,
-                        fillOpacity: 1,
-                        color: '#ffffff',
-                        weight: 1.5
-                    }).addTo(map)
+                // Small numbered dot markers using divIcon
+                const dotMarkers = stops.map((stop, idx) => {
+                    const icon = L.divIcon({
+                        className: 'stop-icon',
+                        html: `<div class="stop-dot-number" style="background:${color};">${idx + 1}</div>`,
+                        iconSize: [20, 20], iconAnchor: [10, 10]
+                    });
+                    return L.marker([stop.lat, stop.lng], { icon }).addTo(map)
                         .bindPopup(`
                             <div class="popup-route">🚌 ${fcCodes.length > 1 ? `[${fcCode}] ` : ''}${routeName}</div>
                             <div class="popup-time">🕐 ${stop.time} · ${shiftName}</div>
@@ -674,10 +673,8 @@ function toggleRouteHighlight(routeIdx) {
 
         // Reset dot markers - show/dim
         rg.dotMarkers.forEach(m => {
-            m.setStyle({
-                fillOpacity: isDeselecting ? 1 : 0.2,
-                opacity: isDeselecting ? 1 : 0.2
-            });
+            const el = m.getElement();
+            if (el) el.style.opacity = isDeselecting ? '1' : '0.2';
         });
 
         // Remove numbered markers
@@ -707,7 +704,8 @@ function toggleRouteHighlight(routeIdx) {
 
     // Show dot markers fully
     rg.dotMarkers.forEach(m => {
-        m.setStyle({ fillOpacity: 1, opacity: 1 });
+        const el = m.getElement();
+        if (el) el.style.opacity = '1';
     });
 
     // Add numbered markers
