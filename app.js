@@ -78,7 +78,13 @@ async function loadData() {
 // ===== Populate FC Select =====
 function populateFCs() {
     const fcSelect = document.getElementById('fc-select');
-    const sortedFCs = Object.keys(shuttleData).sort();
+
+    // Sort alphabetically by actual Korean center name instead of raw FC Code
+    const sortedFCs = Object.keys(shuttleData).sort((a, b) => {
+        const nameA = shuttleData[a].center?.name || a;
+        const nameB = shuttleData[b].center?.name || b;
+        return nameA.localeCompare(nameB, 'ko-KR');
+    });
 
     const allOpt = document.createElement('option');
     allOpt.value = ALL_VALUE;
@@ -89,7 +95,7 @@ function populateFCs() {
         const option = document.createElement('option');
         option.value = fc;
         const centerName = shuttleData[fc].center?.name || fc;
-        option.textContent = `${fc} — ${centerName}`;
+        option.textContent = `${centerName} [${fc}]`;
         option.dataset.searchText = `${fc} ${centerName}`.toLowerCase();
         fcSelect.appendChild(option);
     });
@@ -107,12 +113,12 @@ function setupEventListeners() {
     const fcSearch = document.getElementById('fc-search');
     const searchResults = document.getElementById('search-results');
 
-    // Build search index once
+    // Build search index once, sorted alphabetically by Korean name
     const searchIndex = Object.keys(shuttleData).map(fc => ({
         code: fc,
         name: shuttleData[fc].center?.name || fc,
         searchText: `${fc} ${shuttleData[fc].center?.name || ''}`.toLowerCase()
-    }));
+    })).sort((a, b) => a.name.localeCompare(b.name, 'ko-KR'));
 
     window.activeFCs = [];
 
