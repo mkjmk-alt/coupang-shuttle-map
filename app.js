@@ -586,20 +586,31 @@ function showMultiRoute(fcCodes, shiftFilter) {
                     color, weight: 3, opacity: 0.6, dashArray: '10, 6'
                 }).addTo(map);
 
-                // Small numbered dot markers using divIcon
+                // We must use Canvas circleMarker for performance when plotting thousands of points (All Centers mode)
+                // To show numbers without creating 50,000 DOM nodes, we attach a lightweight, permanent Leaflet tooltip instead
                 const dotMarkers = stops.map((stop, idx) => {
-                    const icon = L.divIcon({
-                        className: 'stop-icon',
-                        html: `<div class="stop-dot-number" style="background:${color};">${idx + 1}</div>`,
-                        iconSize: [20, 20], iconAnchor: [10, 10]
-                    });
-                    return L.marker([stop.lat, stop.lng], { icon }).addTo(map)
+                    const marker = L.circleMarker([stop.lat, stop.lng], {
+                        radius: 6,
+                        fillColor: color,
+                        fillOpacity: 1,
+                        color: '#ffffff',
+                        weight: 1.5
+                    }).addTo(map)
                         .bindPopup(`
-                            <div class="popup-route">🚌 ${fcCodes.length > 1 ? `[${fcCode}] ` : ''}${routeName}</div>
-                            <div class="popup-time">🕐 ${stop.time} · ${shiftName}</div>
-                            <div class="popup-title">${stop.name}</div>
-                            <div class="popup-addr">${stop.address}</div>
-                        `);
+                        <div class="popup-route">🚌 ${fcCodes.length > 1 ? `[${fcCode}] ` : ''}${routeName}</div>
+                        <div class="popup-time">🕐 ${stop.time} · ${shiftName}</div>
+                        <div class="popup-title">${stop.name}</div>
+                        <div class="popup-addr">${stop.address}</div>
+                    `);
+
+                    // Attach a tiny permanent number tooltip over the canvas marker
+                    marker.bindTooltip(`${idx + 1}`, {
+                        permanent: true,
+                        direction: 'center',
+                        className: 'stop-number-tooltip'
+                    });
+
+                    return marker;
                 });
 
                 // Route header in sidebar (collapsible)
@@ -671,10 +682,18 @@ function toggleRouteHighlight(routeIdx) {
             weight: isDeselecting ? 3 : 2
         });
 
-        // Reset dot markers - show/dim
+        // Reset dot markers opacity
         rg.dotMarkers.forEach(m => {
-            const el = m.getElement();
-            if (el) el.style.opacity = isDeselecting ? '1' : '0.2';
+            m.setStyle({
+                fillOpacity: isDeselecting ? 1 : 0.2,
+                opacity: isDeselecting ? 1 : 0.2
+            });
+            // Dim the tooltip text as well via CSS class toggle
+            const tooltip = m.getTooltip();
+            if (tooltip) {
+                const el = tooltip.getElement();
+                if (el) el.style.opacity = isDeselecting ? '1' : '0.2';
+            }
         });
 
         // Remove numbered markers
@@ -704,8 +723,12 @@ function toggleRouteHighlight(routeIdx) {
 
     // Show dot markers fully
     rg.dotMarkers.forEach(m => {
-        const el = m.getElement();
-        if (el) el.style.opacity = '1';
+        m.setStyle({ fillOpacity: 1, opacity: 1 });
+        const tooltip = m.getTooltip();
+        if (tooltip) {
+            const el = tooltip.getElement();
+            if (el) el.style.opacity = '1';
+        }
     });
 
     // Add numbered markers
