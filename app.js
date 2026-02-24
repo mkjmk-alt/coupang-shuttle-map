@@ -75,14 +75,20 @@ async function loadData() {
     }
 }
 
+// Helper: Pad numbers in string with zeroes to enable natural sorting (e.g., '인천5센터' -> '인천005센터')
+function getSortName(name) {
+    if (!name) return '';
+    return name.replace(/\d+/g, match => match.padStart(3, '0'));
+}
+
 // ===== Populate FC Select =====
 function populateFCs() {
     const fcSelect = document.getElementById('fc-select');
 
-    // Sort alphabetically by actual Korean center name instead of raw FC Code
+    // Sort alphabetically by actual Korean center name instead of raw FC Code, with natural number sorting
     const sortedFCs = Object.keys(shuttleData).sort((a, b) => {
-        const nameA = shuttleData[a].center?.name || a;
-        const nameB = shuttleData[b].center?.name || b;
+        const nameA = getSortName(shuttleData[a].center?.name || a);
+        const nameB = getSortName(shuttleData[b].center?.name || b);
         return nameA.localeCompare(nameB, 'ko-KR');
     });
 
@@ -113,12 +119,16 @@ function setupEventListeners() {
     const fcSearch = document.getElementById('fc-search');
     const searchResults = document.getElementById('search-results');
 
-    // Build search index once, sorted alphabetically by Korean name
+    // Build search index once, sorted alphabetically by Korean name with natural number sorting
     const searchIndex = Object.keys(shuttleData).map(fc => ({
         code: fc,
         name: shuttleData[fc].center?.name || fc,
         searchText: `${fc} ${shuttleData[fc].center?.name || ''}`.toLowerCase()
-    })).sort((a, b) => a.name.localeCompare(b.name, 'ko-KR'));
+    })).sort((a, b) => {
+        const nameA = getSortName(a.name);
+        const nameB = getSortName(b.name);
+        return nameA.localeCompare(nameB, 'ko-KR');
+    });
 
     window.activeFCs = [];
 
