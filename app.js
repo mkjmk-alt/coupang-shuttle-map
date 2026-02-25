@@ -87,8 +87,8 @@ function populateFCs() {
 
     // Sort alphabetically by actual Korean center name instead of raw FC Code, with natural number sorting
     const sortedFCs = Object.keys(shuttleData).sort((a, b) => {
-        const nameA = getSortName(shuttleData[a].center?.name || a);
-        const nameB = getSortName(shuttleData[b].center?.name || b);
+        const nameA = getSortName(shuttleData[a].center?.Name || a);
+        const nameB = getSortName(shuttleData[b].center?.Name || b);
         return nameA.localeCompare(nameB, 'ko-KR');
     });
 
@@ -100,7 +100,7 @@ function populateFCs() {
     sortedFCs.forEach(fc => {
         const option = document.createElement('option');
         option.value = fc;
-        const centerName = shuttleData[fc].center?.name || fc;
+        const centerName = shuttleData[fc].center?.Name || fc;
         option.textContent = `${centerName} [${fc}]`;
         option.dataset.searchText = `${fc} ${centerName}`.toLowerCase();
         fcSelect.appendChild(option);
@@ -122,8 +122,8 @@ function setupEventListeners() {
     // Build search index once, sorted alphabetically by Korean name with natural number sorting
     const searchIndex = Object.keys(shuttleData).map(fc => ({
         code: fc,
-        name: shuttleData[fc].center?.name || fc,
-        searchText: `${fc} ${shuttleData[fc].center?.name || ''}`.toLowerCase()
+        name: shuttleData[fc].center?.Name || fc,
+        searchText: `${fc} ${shuttleData[fc].center?.Name || ''}`.toLowerCase()
     })).sort((a, b) => {
         const nameA = getSortName(a.name);
         const nameB = getSortName(b.name);
@@ -478,7 +478,7 @@ function updateMiniInfo() {
             miniInfo.textContent = `🚌 ${window.activeFCs.length}개 센터 비교 중 — 탭하여 열기`;
         } else {
             const fcCode = window.activeFCs[0];
-            const name = shuttleData[fcCode]?.center?.name || fcCode;
+            const name = shuttleData[fcCode]?.center?.Name || fcCode;
             miniInfo.textContent = `🚌 ${fcCode} ${name} — 탭하여 열기`;
         }
     } else {
@@ -605,7 +605,7 @@ function showMultiRoute(fcCodes, shiftFilter) {
             fcHeader.style.color = 'var(--primary)';
             fcHeader.style.fontWeight = '800';
             fcHeader.style.marginTop = '16px';
-            fcHeader.innerHTML = `<span class="section-icon">🏢</span> [${fcCode}] ${fc.center?.name || ''}`;
+            fcHeader.innerHTML = `<span class="section-icon">🏢</span> [${fcCode}] ${fc.center?.Name || ''}`;
             stopListEl.appendChild(fcHeader);
         }
 
@@ -623,10 +623,10 @@ function showMultiRoute(fcCodes, shiftFilter) {
                 const routeIdx = routeLayerGroups.length;
                 colorIndex++;
                 totalStops += stops.length;
-                stops.forEach(s => { if (s.time) allTimes.push(s.time); });
+                stops.forEach(s => { if (s.Time) allTimes.push(s.Time); });
 
                 // Draw polyline
-                const path = stops.map(s => [s.lat, s.lng]);
+                const path = stops.map(s => [s.Latitude, s.Longitude]);
                 path.forEach(p => bounds.extend(p));
 
                 const polyline = L.polyline(path, {
@@ -636,7 +636,7 @@ function showMultiRoute(fcCodes, shiftFilter) {
                 // We use natively extended Canvas circleMarker for maximum performance
                 // Text is rendered directly onto the GPU canvas via our custom L.Canvas override above
                 const dotMarkers = stops.map((stop, idx) => {
-                    return L.circleMarker([stop.lat, stop.lng], {
+                    return L.circleMarker([stop.Latitude, stop.Longitude], {
                         radius: 7,
                         fillColor: color,
                         fillOpacity: 1,
@@ -646,9 +646,9 @@ function showMultiRoute(fcCodes, shiftFilter) {
                     }).addTo(map)
                         .bindPopup(`
                         <div class="popup-route">🚌 ${fcCodes.length > 1 ? `[${fcCode}] ` : ''}${routeName}</div>
-                        <div class="popup-time">🕐 ${stop.time} · ${shiftName}</div>
-                        <div class="popup-title">${stop.name}</div>
-                        <div class="popup-addr">${stop.address}</div>
+                        <div class="popup-time">🕐 ${stop.Time} · ${shiftName}</div>
+                        <div class="popup-title">${stop.Name}</div>
+                        <div class="popup-addr">${stop.Address}</div>
                     `);
                 });
 
@@ -663,7 +663,7 @@ function showMultiRoute(fcCodes, shiftFilter) {
                     <div class="route-color-bar" style="background:${color};"></div>
                     <div class="route-header-content">
                         <div class="route-header-title">🚌 ${routeName}</div>
-                        <div class="route-header-meta">${stops.length}개 정류장 · ${stops[0]?.time || ''} ~ ${stops[stops.length - 1]?.time || ''}</div>
+                        <div class="route-header-meta">${stops.length}개 정류장 · ${stops[0]?.Time || ''} ~ ${stops[stops.length - 1]?.Time || ''}</div>
                     </div>
                     <div class="route-expand-icon">▼</div>
                 `;
@@ -766,13 +766,13 @@ function toggleRouteHighlight(routeIdx) {
             html: `<div class="stop-marker-inner" style="background:${rg.color};">${idx + 1}</div>`,
             iconSize: [28, 28], iconAnchor: [14, 14]
         });
-        const marker = L.marker([stop.lat, stop.lng], { icon, zIndexOffset: 1000 })
+        const marker = L.marker([stop.Latitude, stop.Longitude], { icon, zIndexOffset: 1000 })
             .addTo(map)
             .bindPopup(`
                 <div class="popup-route">🚌 ${rg.name}</div>
-                <div class="popup-time">🕐 ${stop.time} 출발 · ${rg.shiftName}</div>
-                <div class="popup-title">${idx + 1}. ${stop.name}</div>
-                <div class="popup-addr">${stop.address}</div>
+                <div class="popup-time">🕐 ${stop.Time} 출발 · ${rg.shiftName}</div>
+                <div class="popup-title">${idx + 1}. ${stop.Name}</div>
+                <div class="popup-addr">${stop.Address}</div>
             `);
         rg.numberedMarkers.push(marker);
     });
@@ -788,14 +788,14 @@ function toggleRouteHighlight(routeIdx) {
             stopEl.innerHTML = `
                 <div class="stop-number" style="background:${rg.color};">${idx + 1}</div>
                 <div class="stop-content">
-                    <div class="stop-time">🕐 ${stop.time}</div>
-                    <div class="stop-name">${stop.name}</div>
-                    <div class="stop-addr">${stop.address}</div>
+                    <div class="stop-time">🕐 ${stop.Time}</div>
+                    <div class="stop-name">${stop.Name}</div>
+                    <div class="stop-addr">${stop.Address}</div>
                 </div>
             `;
             stopEl.addEventListener('click', (e) => {
                 e.stopPropagation();
-                mapFlyTo([stop.lat, stop.lng], 16, { duration: 0.6 });
+                mapFlyTo([stop.Latitude, stop.Longitude], 16, { duration: 0.6 });
                 rg.dotMarkers[idx].openPopup();
             });
             rg.stopsContainer.appendChild(stopEl);
@@ -811,7 +811,7 @@ function toggleRouteHighlight(routeIdx) {
     rg.routeHeader.scrollIntoView({ behavior: 'smooth', block: 'start' });
 
     // Zoom to route bounds
-    const path = rg.stops.map(s => [s.lat, s.lng]);
+    const path = rg.stops.map(s => [s.Latitude, s.Longitude]);
     const routeBounds = L.latLngBounds(path);
     mapFlyToBounds(routeBounds, { padding: [80, 80], duration: 0.8 });
 }
@@ -841,7 +841,7 @@ function renderSingleRoute(stops, center, routeName, color, fcCode) {
     }
 
     stops.forEach((stop, index) => {
-        const latlng = [stop.lat, stop.lng];
+        const latlng = [stop.Latitude, stop.Longitude];
         path.push(latlng);
         bounds.extend(latlng);
 
@@ -855,9 +855,9 @@ function renderSingleRoute(stops, center, routeName, color, fcCode) {
 
         const marker = L.marker(latlng, { icon }).addTo(map).bindPopup(`
             <div class="popup-route">🚌 ${routePrefix}${routeName}</div>
-            <div class="popup-time">🕐 ${stop.time} 출발</div>
-            <div class="popup-title">${index + 1}. ${stop.name}</div>
-            <div class="popup-addr">${stop.address}</div>
+            <div class="popup-time">🕐 ${stop.Time} 출발</div>
+            <div class="popup-title">${index + 1}. ${stop.Name}</div>
+            <div class="popup-addr">${stop.Address}</div>
         `);
         currentMarkers.push(marker);
 
@@ -866,9 +866,9 @@ function renderSingleRoute(stops, center, routeName, color, fcCode) {
         stopItem.innerHTML = `
             <div class="stop-number">${index + 1}</div>
             <div class="stop-content">
-                <div class="stop-time">🕐 ${stop.time}</div>
-                <div class="stop-name">${stop.name}</div>
-                <div class="stop-addr">${stop.address}</div>
+                <div class="stop-time">🕐 ${stop.Time}</div>
+                <div class="stop-name">${stop.Name}</div>
+                <div class="stop-addr">${stop.Address}</div>
             </div>
         `;
         stopItem.addEventListener('click', () => {
@@ -895,7 +895,7 @@ function renderSingleRoute(stops, center, routeName, color, fcCode) {
         // It is now permanently drawn via addCenterMarker() when the center is selected
     }
 
-    updateStats(stops.length, stops[0]?.time || '-', stops[stops.length - 1]?.time || '-', '정류장');
+    updateStats(stops.length, stops[0]?.Time || '-', stops[stops.length - 1]?.Time || '-', '정류장');
     mapFlyToBounds(bounds, { padding: [60, 60], duration: 1 });
 }
 
