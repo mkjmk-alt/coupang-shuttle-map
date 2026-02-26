@@ -575,7 +575,15 @@ function showAllCenters() {
 
         const marker = L.marker([lat, lng], { icon }).addTo(map)
             .bindPopup(infoHtml)
-            .bindTooltip(infoHtml, { direction: 'top', offset: [0, -10], opacity: 0.9 });
+            .bindTooltip(infoHtml, { direction: 'top', offset: [0, -10], opacity: 0.9 })
+            .on('click', () => {
+                window.activeFCs = [];
+                const fcSelect = document.getElementById('fc-select');
+                if (fcSelect) {
+                    fcSelect.value = fcCode;
+                    fcSelect.dispatchEvent(new Event('change'));
+                }
+            });
 
         centerMarkers.push(marker);
         count++;
@@ -925,6 +933,15 @@ function addCenterMarker(fcCode, center) {
         iconSize: [28, 28], iconAnchor: [14, 14]
     });
 
+    const fc = shuttleData[fcCode];
+    let statsHtml = '';
+    if (fc && fc.shifts) {
+        const totalStops = Object.values(fc.shifts).flatMap(s => Object.values(s)).flat().length;
+        const shiftCount = Object.keys(fc.shifts).length;
+        const routeCount = Object.values(fc.shifts).reduce((s, v) => s + Object.keys(v).length, 0);
+        statsHtml = `<div class="popup-addr" style="margin-top:6px;color:#818CF8;">${shiftCount}개 근무조 · ${routeCount}개 노선 · ${totalStops}개 정류장</div>`;
+    }
+
     const centerMarkerName = center.name || fcCode || '도착 센터';
     const marker = L.marker([center.lat, center.lng], { icon: centerIcon, zIndexOffset: 2000 }).addTo(map)
         .bindTooltip(`🏢 ${centerMarkerName}`, {
@@ -936,7 +953,8 @@ function addCenterMarker(fcCode, center) {
         .bindPopup(`
             <div class="popup-title">📍 ${centerMarkerName}</div>
             <div class="popup-addr">${center.address || ''}</div>
-        `);
+            ${statsHtml}
+        `).openPopup();
     centerMarkers.push(marker);
 }
 
