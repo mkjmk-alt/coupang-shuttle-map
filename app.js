@@ -99,8 +99,8 @@ function populateFCs() {
 
     // Sort alphabetically by actual Korean center name instead of raw FC Code, with natural number sorting
     const sortedFCs = Object.keys(shuttleData).sort((a, b) => {
-        const nameA = getSortName(shuttleData[a].center?.Name || a);
-        const nameB = getSortName(shuttleData[b].center?.Name || b);
+        const nameA = getSortName(shuttleData[a].center?.name || a);
+        const nameB = getSortName(shuttleData[b].center?.name || b);
         return nameA.localeCompare(nameB, 'ko-KR');
     });
 
@@ -112,7 +112,7 @@ function populateFCs() {
     sortedFCs.forEach(fc => {
         const option = document.createElement('option');
         option.value = fc;
-        const centerName = shuttleData[fc].center?.Name || fc;
+        const centerName = shuttleData[fc].center?.name || fc;
         option.textContent = `${centerName} [${fc}]`;
         option.dataset.searchText = `${fc} ${centerName}`.toLowerCase();
         fcSelect.appendChild(option);
@@ -134,8 +134,8 @@ function setupEventListeners() {
     // Build search index once, sorted alphabetically by Korean name with natural number sorting
     const searchIndex = Object.keys(shuttleData).map(fc => ({
         code: fc,
-        name: shuttleData[fc].center?.Name || fc,
-        searchText: `${fc} ${shuttleData[fc].center?.Name || ''}`.toLowerCase()
+        name: shuttleData[fc].center?.name || fc,
+        searchText: `${fc} ${shuttleData[fc].center?.name || ''}`.toLowerCase()
     })).sort((a, b) => {
         const nameA = getSortName(a.name);
         const nameB = getSortName(b.name);
@@ -490,7 +490,7 @@ function updateMiniInfo() {
             miniInfo.textContent = `🚌 ${window.activeFCs.length}개 센터 비교 중 — 탭하여 열기`;
         } else {
             const fcCode = window.activeFCs[0];
-            const name = shuttleData[fcCode]?.center?.Name || fcCode;
+            const name = shuttleData[fcCode]?.center?.name || fcCode;
             miniInfo.textContent = `🚌 ${fcCode} ${name} — 탭하여 열기`;
         }
     } else {
@@ -617,7 +617,7 @@ function showMultiRoute(fcCodes, shiftFilter) {
             fcHeader.style.color = 'var(--primary)';
             fcHeader.style.fontWeight = '800';
             fcHeader.style.marginTop = '16px';
-            fcHeader.innerHTML = `<span class="section-icon">🏢</span> [${fcCode}] ${fc.center?.Name || ''}`;
+            fcHeader.innerHTML = `<span class="section-icon">🏢</span> [${fcCode}] ${fc.center?.name || ''}`;
             stopListEl.appendChild(fcHeader);
         }
 
