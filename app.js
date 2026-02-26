@@ -55,10 +55,22 @@ function initMap() {
         };
     }
 
-    L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
-        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/">CARTO</a>',
+    // 한국 건물 정보가 잘 보이는 브이월드(Vworld) 지도 사용 (일반 지도)
+    L.tileLayer('https://xdworld.vworld.kr/2d/Base/service/{z}/{x}/{y}.png', {
+        attribution: '&copy; <a href="https://map.vworld.kr/">Vworld</a>',
         maxZoom: 19
     }).addTo(map);
+
+    // (참고) 다른 지도 옵션
+    // 오픈스트리트맵 (표준)
+    // L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    //     attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+    // }).addTo(map);
+
+    // 구글 지도 (일반)
+    // L.tileLayer('https://mt1.google.com/vt/lyrs=m&x={x}&y={y}&z={z}', {
+    //     attribution: '&copy; Google Maps'
+    // }).addTo(map);
 
     L.control.zoom({ position: 'bottomleft' }).addTo(map);
 }
