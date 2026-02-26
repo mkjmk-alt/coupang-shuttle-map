@@ -567,11 +567,21 @@ function showAllCenters() {
             iconSize: [24, 24], iconAnchor: [12, 12]
         });
 
-        const marker = L.marker([lat, lng], { icon }).addTo(map).bindPopup(`
-            <div class="popup-title">📍 ${name}</div>
-            <div class="popup-addr">${address}</div>
-            <div class="popup-addr" style="margin-top:6px;color:#818CF8;">${shiftCount}개 근무조 · ${routeCount}개 노선 · ${totalStops}개 정류장</div>
-        `);
+        const marker = L.marker([lat, lng], { icon }).addTo(map)
+            .bindTooltip(`
+                <div style="font-weight: 800; color: #fff;">${name}</div>
+                <div style="font-size: 11px; color: #a1a1aa; margin-top:2px;">${shiftCount}개 조 · ${routeCount}개 노선</div>
+            `, { direction: 'top', offset: [0, -10], opacity: 0.9 })
+            .on('click', () => {
+                // 기존 선택된 센터들을 초기화하고 클릭한 센터만 선택되도록 함
+                window.activeFCs = [];
+                const fcSelect = document.getElementById('fc-select');
+                if (fcSelect) {
+                    fcSelect.value = fcCode;
+                    fcSelect.dispatchEvent(new Event('change'));
+                }
+            });
+
         centerMarkers.push(marker);
         count++;
     });
