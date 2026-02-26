@@ -25,6 +25,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     await loadData();
     populateFCs();
     setupEventListeners();
+    showAllCenters(); // 추가: 처음에 전체 센터(빨간점) 표시
 });
 
 // ===== Map Initialization =====
