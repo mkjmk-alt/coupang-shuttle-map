@@ -85,7 +85,7 @@ html {
     backdrop-filter: blur(24px);
     -webkit-backdrop-filter: blur(24px);
     z-index: 1001;
-    padding: 0 16px calc(var(--safe-bottom) + 16px);
+    padding: 0 16px 16px;
     border-radius: 20px 20px 0 0;
     box-shadow: 0 -10px 40px rgba(0, 0, 0, 0.5);
     border: 1px solid var(--border);
