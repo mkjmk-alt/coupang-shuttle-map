@@ -589,7 +589,6 @@ function showAllCenters() {
         count++;
     });
 
-    updateStats(count, '전체', '센터', '센터 수');
     mapFlyToBounds(bounds, { padding: [60, 60], duration: 1.2 });
 }
 
@@ -603,7 +602,6 @@ function showMultiRoute(fcCodes, shiftFilter) {
     const routeDetailsEl = document.getElementById('route-details');
     stopListEl.innerHTML = '';
     routeDetailsEl.style.display = 'block';
-    document.getElementById('route-stats').style.display = 'none';
 
     routeLayerGroups = [];
     activeRouteIndex = -1;
@@ -731,7 +729,6 @@ function showMultiRoute(fcCodes, shiftFilter) {
     });
 
     allTimes.sort();
-    updateStats(totalStops, allTimes[0] || '-', allTimes[allTimes.length - 1] || '-', '정류장');
     if (bounds.isValid()) mapFlyToBounds(bounds, { padding: [60, 60], duration: 1 });
 }
 
@@ -850,7 +847,6 @@ function renderSingleRoute(stops, center, routeName, color, fcCode) {
     const routeDetailsEl = document.getElementById('route-details');
     stopListEl.innerHTML = '';
     routeDetailsEl.style.display = 'block';
-    document.getElementById('route-stats').style.display = 'none';
 
     if (center) bounds.extend([center.lat, center.lng]);
 
@@ -921,7 +917,6 @@ function renderSingleRoute(stops, center, routeName, color, fcCode) {
         // It is now permanently drawn via addCenterMarker() when the center is selected
     }
 
-    updateStats(stops.length, stops[0]?.Time || '-', stops[stops.length - 1]?.Time || '-', '정류장');
     mapFlyToBounds(bounds, { padding: [60, 60], duration: 1 });
 }
 
@@ -958,12 +953,6 @@ function addCenterMarker(fcCode, center) {
     centerMarkers.push(marker);
 }
 
-function updateStats(count, first, last, label) {
-    document.getElementById('stat-stops').textContent = count;
-    document.getElementById('stat-first').textContent = first;
-    document.getElementById('stat-last').textContent = last;
-    document.querySelector('#route-stats .stat-item:first-child .stat-label').textContent = label;
-}
 
 function clearRoute() {
     currentMarkers.forEach(m => map.removeLayer(m));
@@ -976,7 +965,6 @@ function clearRoute() {
     routeLayerGroups = [];
     activeRouteIndex = -1;
     document.getElementById('route-details').style.display = 'none';
-    document.getElementById('route-stats').style.display = 'none';
 }
 
 function clearAll() {
