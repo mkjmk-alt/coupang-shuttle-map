@@ -105,11 +105,6 @@ function populateFCs() {
         return nameA.localeCompare(nameB, 'ko-KR');
     });
 
-    const allOpt = document.createElement('option');
-    allOpt.value = ALL_VALUE;
-    allOpt.textContent = `⭐ 전체 센터 (${sortedFCs.length}개)`;
-    fcSelect.appendChild(allOpt);
-
     sortedFCs.forEach(fc => {
         const option = document.createElement('option');
         option.value = fc;
@@ -268,12 +263,8 @@ function setupEventListeners() {
                 <span class="search-result-name">${item.name}</span>
             `;
             el.addEventListener('click', () => {
-                if (window.activeFCs.includes(item.code)) {
-                    // Already selected
-                } else {
-                    window.activeFCs.push(item.code);
-                    updateFCSelection();
-                }
+                window.activeFCs = [item.code];
+                updateFCSelection();
                 fcSearch.value = '';
                 searchResults.classList.remove('active');
             });
@@ -303,19 +294,8 @@ function setupEventListeners() {
         const fcCode = fcSelect.value;
         if (!fcCode) return;
 
-        if (fcCode === ALL_VALUE) {
-            window.activeFCs = Object.keys(shuttleData).filter(fc => shuttleData[fc] && shuttleData[fc].shifts);
-            updateFCSelection();
-            fcSelect.value = '';
-            return;
-        }
-
-        if (window.activeFCs.includes(fcCode)) {
-            // Already selected
-        } else {
-            window.activeFCs.push(fcCode);
-            updateFCSelection();
-        }
+        window.activeFCs = [fcCode];
+        updateFCSelection();
 
         // Reset the select dropdown to prompt next selection
         fcSelect.value = '';
