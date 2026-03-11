@@ -11,7 +11,6 @@ node_modules/
 # Data exports & reports
 excel_exports/
 *.xlsx
-*.txt
 mismatches.json
 fix_report.md
 
