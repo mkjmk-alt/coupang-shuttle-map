@@ -142,24 +142,15 @@ function setupEventListeners() {
     window.compareModeEnabled = false;
 
     const compareToggleBtn = document.getElementById('compare-toggle-btn');
+    const adModal = document.getElementById('ad-modal');
+    const adCloseBtn = document.getElementById('ad-close-btn');
+    const adCountdown = document.getElementById('ad-countdown');
+    let adWaitTimer = null;
+
     compareToggleBtn.addEventListener('click', () => {
-        // [광고 시청 연동] 추후 광고 시청 후 true로 변경하도록 수정
-        const wantsToEnable = !window.compareModeEnabled;
-        
-        if (wantsToEnable) {
-            alert("🔒 다중 비교 기능은 추후 광고 시청 후 제공될 예정입니다.\n현재는 임시로 기능을 열어드립니다!");
-        }
-
-        window.compareModeEnabled = wantsToEnable;
-
+        // 이미 켜져있는 경우 -> 바로 끕니다
         if (window.compareModeEnabled) {
-            compareToggleBtn.classList.remove('disabled');
-            compareToggleBtn.classList.add('active');
-            compareToggleBtn.innerHTML = `
-                <svg class="lock-icon" xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M7 11V7a5 5 0 0 1 9.9-1"></path><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect></svg>
-                다중 비교 켜짐
-            `;
-        } else {
+            window.compareModeEnabled = false;
             compareToggleBtn.classList.add('disabled');
             compareToggleBtn.classList.remove('active');
             compareToggleBtn.innerHTML = `
@@ -171,7 +162,56 @@ function setupEventListeners() {
                 window.activeFCs = [window.activeFCs[window.activeFCs.length - 1]];
                 updateFCSelection();
             }
+            return;
         }
+
+        // 다중 비교를 켜려고 하는 경우 -> 광고 팝업 띄우기
+        showAdPopup();
+    });
+
+    function showAdPopup() {
+        adModal.style.display = 'flex';
+        // 애니메이션을 위해 아주 짧은 딜레이 후 show 클래스 추가
+        setTimeout(() => adModal.classList.add('show'), 10);
+
+        // 구글 애드센스 등 로드 트리거 (처음 1회 등 방어 로직 필요 시 추후 추가)
+        try {
+            (adsbygoogle = window.adsbygoogle || []).push({});
+        } catch (e) {
+            console.log("AdSense load error or ad blocker enabled", e);
+        }
+
+        // 닫기 버튼 초기화 및 타이머 카운트다운
+        adCloseBtn.disabled = true;
+        let secondsLeft = 5;
+        adCountdown.textContent = secondsLeft;
+
+        adWaitTimer = setInterval(() => {
+            secondsLeft--;
+            adCountdown.textContent = secondsLeft;
+            if (secondsLeft <= 0) {
+                clearInterval(adWaitTimer);
+                adCountdown.textContent = '✕';
+                adCloseBtn.disabled = false;
+            }
+        }, 1000);
+    }
+
+    adCloseBtn.addEventListener('click', () => {
+        // 팝업 닫기
+        adModal.classList.remove('show');
+        setTimeout(() => {
+            adModal.style.display = 'none';
+        }, 300);
+
+        // 끄고 나면 보상(다중 비교 기능) 활성화!
+        window.compareModeEnabled = true;
+        compareToggleBtn.classList.remove('disabled');
+        compareToggleBtn.classList.add('active');
+        compareToggleBtn.innerHTML = `
+            <svg class="lock-icon" xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M7 11V7a5 5 0 0 1 9.9-1"></path><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect></svg>
+            다중 비교 켜짐
+        `;
     });
 
     function updateFCSelection() {

@@ -1336,3 +1336,101 @@ select:disabled {
         font-size: 10px !important;
     }
 }
+
+/* ===== AD MODAL ===== */
+.ad-modal {
+    position: fixed;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: rgba(0, 0, 0, 0.75);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 9999; /* 매우 높게 설정하여 모든 요소를 덮음 */
+    padding: 20px;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+
+.ad-modal.show {
+    opacity: 1;
+}
+
+.ad-modal-content {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    width: 100%;
+    max-width: 400px;
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+    overflow: hidden;
+    transform: scale(0.95);
+    transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+.ad-modal.show .ad-modal-content {
+    transform: scale(1);
+}
+
+.ad-modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 16px 20px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.ad-modal-title {
+    font-size: 16px;
+    font-weight: 800;
+    color: var(--text);
+}
+
+.ad-close-btn {
+    background: rgba(255, 255, 255, 0.1);
+    border: none;
+    color: var(--text);
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    font-size: 14px;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: var(--transition);
+}
+
+.ad-close-btn:not(:disabled):hover {
+    background: rgba(239, 68, 68, 0.2);
+    color: var(--danger);
+}
+
+.ad-close-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.ad-modal-body {
+    padding: 20px;
+    background: #0f172a; /* 광고 배경은 약간 어둡게 */
+    min-height: 250px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.ad-modal-footer {
+    padding: 16px 20px;
+    text-align: center;
+    font-size: 13px;
+    color: var(--text-muted);
+    background: rgba(255, 255, 255, 0.02);
+    border-top: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.ad-modal-footer b {
+    color: var(--primary-light);
+}
