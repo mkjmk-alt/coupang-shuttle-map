@@ -139,6 +139,40 @@ function setupEventListeners() {
     });
 
     window.activeFCs = [];
+    window.compareModeEnabled = false;
+
+    const compareToggleBtn = document.getElementById('compare-toggle-btn');
+    compareToggleBtn.addEventListener('click', () => {
+        // [광고 시청 연동] 추후 광고 시청 후 true로 변경하도록 수정
+        const wantsToEnable = !window.compareModeEnabled;
+        
+        if (wantsToEnable) {
+            alert("🔒 다중 비교 기능은 추후 광고 시청 후 제공될 예정입니다.\n현재는 임시로 기능을 열어드립니다!");
+        }
+
+        window.compareModeEnabled = wantsToEnable;
+
+        if (window.compareModeEnabled) {
+            compareToggleBtn.classList.remove('disabled');
+            compareToggleBtn.classList.add('active');
+            compareToggleBtn.innerHTML = `
+                <svg class="lock-icon" xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M7 11V7a5 5 0 0 1 9.9-1"></path><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect></svg>
+                다중 비교 켜짐
+            `;
+        } else {
+            compareToggleBtn.classList.add('disabled');
+            compareToggleBtn.classList.remove('active');
+            compareToggleBtn.innerHTML = `
+                <svg class="lock-icon" xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
+                다중 비교 켜기
+            `;
+            // 다중 비교 모드를 끌 때, 여러개가 선택되어 있었다면 가장 마지막 것 하나만 남깁니다.
+            if (window.activeFCs.length > 1) {
+                window.activeFCs = [window.activeFCs[window.activeFCs.length - 1]];
+                updateFCSelection();
+            }
+        }
+    });
 
     function updateFCSelection() {
         const chipsContainer = document.getElementById('selection-chips');
@@ -263,8 +297,15 @@ function setupEventListeners() {
                 <span class="search-result-name">${item.name}</span>
             `;
             el.addEventListener('click', () => {
-                window.activeFCs = [item.code];
-                updateFCSelection();
+                if (window.compareModeEnabled) {
+                    if (!window.activeFCs.includes(item.code)) {
+                        window.activeFCs.push(item.code);
+                        updateFCSelection();
+                    }
+                } else {
+                    window.activeFCs = [item.code];
+                    updateFCSelection();
+                }
                 fcSearch.value = '';
                 searchResults.classList.remove('active');
             });
@@ -294,8 +335,15 @@ function setupEventListeners() {
         const fcCode = fcSelect.value;
         if (!fcCode) return;
 
-        window.activeFCs = [fcCode];
-        updateFCSelection();
+        if (window.compareModeEnabled) {
+            if (!window.activeFCs.includes(fcCode)) {
+                window.activeFCs.push(fcCode);
+                updateFCSelection();
+            }
+        } else {
+            window.activeFCs = [fcCode];
+            updateFCSelection();
+        }
 
         // Reset the select dropdown to prompt next selection
         fcSelect.value = '';

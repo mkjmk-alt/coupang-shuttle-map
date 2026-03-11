@@ -396,6 +396,41 @@ html {
     gap: 4px;
 }
 
+.control-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.compare-toggle-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 3px 6px;
+    background: rgba(15, 23, 42, 0.4);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    font-size: 10px;
+    font-weight: 700;
+    color: var(--text-muted);
+    cursor: pointer;
+    transition: var(--transition);
+}
+
+.compare-toggle-btn:active {
+    transform: scale(0.96);
+}
+
+.compare-toggle-btn.active {
+    background: rgba(16, 185, 129, 0.15);
+    color: var(--success);
+    border-color: rgba(16, 185, 129, 0.3);
+}
+
+.compare-toggle-btn.disabled {
+    opacity: 0.8;
+}
+
 label {
     font-size: 10px;
     font-weight: 700;
