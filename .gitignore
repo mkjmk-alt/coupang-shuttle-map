@@ -1,0 +1,19 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.py
+
+# Node
+node_modules/
+.wrangler/
+
+# Data exports & reports
+excel_exports/
+*.xlsx
+*.txt
+mismatches.json
+fix_report.md
+
+# Backup data files
+data/shuttle_data_backup*.json
