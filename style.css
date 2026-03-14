@@ -1436,12 +1436,38 @@ select:disabled {
 }
 
 .ad-modal-body {
-    padding: 20px;
-    background: #0f172a; /* 광고 배경은 약간 어둡게 */
+    padding: 24px 20px;
+    background: #0f172a;
     min-height: 250px;
     display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    justify-content: flex-start;
+}
+
+.tip-container {
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px dashed rgba(255, 255, 255, 0.1);
+    border-radius: 10px;
+    padding: 16px;
+    margin-bottom: 5px;
+}
+
+.tip-label {
+    font-size: 13px;
+    font-weight: 800;
+    color: var(--primary-light);
+    margin-bottom: 8px;
+    display: flex;
     align-items: center;
-    justify-content: center;
+    gap: 6px;
+}
+
+.tip-text {
+    font-size: 13px;
+    line-height: 1.6;
+    color: var(--text);
+    word-break: keep-all;
 }
 
 .ad-modal-footer {

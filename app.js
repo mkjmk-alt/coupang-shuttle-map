@@ -169,12 +169,27 @@ function setupEventListeners() {
         showAdPopup();
     });
 
+    const SHUTTLE_TIPS = [
+        "쿠팡 셔틀 앱(Hello)을 미리 설치하시면 탑승권 발권이 훨씬 빨라집니다.",
+        "셔틀버스는 정해진 시간보다 5분 일찍 도착해 대기하는 것이 가장 안전합니다.",
+        "야간조 퇴근 셔틀은 근무 종료 후 약 20~30분 뒤에 출발하니 서둘러 준비하세요.",
+        "탑승 전 본인의 노선 번호와 목적지 센터 이름을 버스 앞 유리에서 꼭 확인하세요.",
+        "물류센터 내 보안을 위해 셔틀 내부에서의 사진 촬영은 금지되어 있습니다.",
+        "겨울철이나 여름철에는 센터 내 온도가 외부와 다를 수 있으니 여벌 옷을 챙기세요.",
+        "신분증을 지참하지 않으면 셔틀 탑승이나 센터 출입이 거절될 수 있습니다.",
+        "노선별로 경유지가 다를 수 있으니, 본인이 내릴 정류장 이름을 잘 기억해두세요."
+    ];
+
     function showAdPopup() {
         adModal.style.display = 'flex';
         // 애니메이션을 위해 아주 짧은 딜레이 후 show 클래스 추가
         setTimeout(() => adModal.classList.add('show'), 10);
 
-        // 구글 애드센스 등 로드 트리거 (처음 1회 등 방어 로직 필요 시 추후 추가)
+        // 랜덤 팁 설정
+        const randomTip = SHUTTLE_TIPS[Math.floor(Math.random() * SHUTTLE_TIPS.length)];
+        document.getElementById('ad-tip-content').textContent = randomTip;
+
+        // 구글 애드센스 등 로드 트리거
         try {
             (adsbygoogle = window.adsbygoogle || []).push({});
         } catch (e) {

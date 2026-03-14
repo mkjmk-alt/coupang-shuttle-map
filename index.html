@@ -6,8 +6,17 @@
     <meta name="viewport"
         content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <meta name="google-adsense-account" content="ca-pub-7954802956462064">
-    <title>쿠팡 셔틀버스 노선 지도</title>
-    <meta name="description" content="쿠팡 물류센터 셔틀버스 노선을 지도에서 확인하세요.">
+    <title>쿠팡 셔틀버스 노선 지도 - 실시간 노선도 및 정류장 안내</title>
+    <meta name="description" content="전국 쿠팡 물류센터(고양, 덕평, 안성, 동탄 등) 셔틀버스 노선도를 지도에서 확인하세요. 실시간 정류장 위치와 이용 가이드를 제공합니다.">
+    <meta name="keywords" content="쿠팡셔틀, 쿠팡셔틀버스, 쿠팡물류센터, 쿠팡알바, 셔틀버스노선, 쿠팡지도, 쿠퍼스, 쿠팡근무">
+    
+    <!-- Open Graph / Facebook -->
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://coupang-shuttle-map.pages.dev/">
+    <meta property="og:title" content="쿠팡 셔틀버스 노선 지도">
+    <meta property="og:description" content="전국 쿠팡 물류센터 셔틀버스 정보를 한눈에! 정류장 위치와 이용 꿀팁을 확인하세요.">
+    <meta property="og:image" content="https://coupang-shuttle-map.pages.dev/favicon.ico">
+
     <!-- Mobile Web App -->
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -219,10 +228,14 @@
                 </button>
             </div>
             <div class="ad-modal-body">
+                <div class="tip-container" id="ad-tip-container">
+                    <div class="tip-label">💡 오늘의 셔틀 이용 팁</div>
+                    <div class="tip-text" id="ad-tip-content">로딩 중...</div>
+                </div>
+                
                 <!-- 구글 애드센스 디스플레이 광고 단위 자리가 여기입니다 -->
-                <!-- 배너 코드가 발급되면 아래 ins 태그 안에 본인 코드를 넣으세요 -->
                 <ins class="adsbygoogle"
-                     style="display:block; width:100%; height:250px; background:rgba(0,0,0,0.1); border-radius:8px;"
+                     style="display:block; width:100%; height:200px; margin-top:15px; background:rgba(255,255,255,0.05); border-radius:8px;"
                      data-ad-client="ca-pub-7954802956462064"
                      data-ad-slot="1234567890"
                      data-ad-format="auto"
