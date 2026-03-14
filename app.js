@@ -25,7 +25,15 @@ document.addEventListener('DOMContentLoaded', async () => {
     await loadData();
     populateFCs();
     setupEventListeners();
-    showAllCenters(); // 추가: 처음에 전체 센터(빨간점) 표시
+    
+    // 첫 화면 버벅임 해소: 맵과 UI가 완전히 그려진 후, 0.5초 뒤에 센터 마커들을 천천히 뿌립니다.
+    setTimeout(() => {
+        if (window.requestIdleCallback) {
+            requestIdleCallback(() => showAllCenters());
+        } else {
+            showAllCenters();
+        }
+    }, 500);
 });
 
 // ===== Map Initialization =====
