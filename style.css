@@ -234,6 +234,28 @@ html {
     letter-spacing: 0.3px;
 }
 
+.static-warning-banner {
+    margin-top: 14px;
+    padding: 10px 12px;
+    background: rgba(239, 68, 68, 0.08);
+    border-left: 3px solid var(--danger);
+    border-radius: 4px;
+    display: block !important; /* Ensure it's shown when sidebar is visible */
+}
+
+.warning-title {
+    font-size: 11px;
+    font-weight: 800;
+    color: var(--danger);
+    margin-bottom: 4px;
+}
+
+.warning-text {
+    font-size: 10.5px;
+    line-height: 1.5;
+    color: var(--text-muted);
+}
+
 /* ===== SEARCH ===== */
 .search-box {
     position: relative;

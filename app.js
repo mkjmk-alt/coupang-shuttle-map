@@ -26,31 +26,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     populateFCs();
     setupEventListeners();
     showAllCenters(); // 추가: 처음에 전체 센터(빨간점) 표시
-    
-    // 입장 시 경고 모달 띄우기 (세션당 1회)
-    showWarningModal();
 });
-
-function showWarningModal() {
-    const warningModal = document.getElementById('warning-modal');
-    const confirmBtn = document.getElementById('warning-confirm-btn');
-    
-    // 세션 스토리지 체크해서 이번 세션에 이미 동의했으면 띄우지 않음
-    if (sessionStorage.getItem('warning_agreed')) {
-        return;
-    }
-
-    warningModal.style.display = 'flex';
-    setTimeout(() => warningModal.classList.add('show'), 10);
-
-    confirmBtn.addEventListener('click', () => {
-        sessionStorage.setItem('warning_agreed', 'true');
-        warningModal.classList.remove('show');
-        setTimeout(() => {
-            warningModal.style.display = 'none';
-        }, 300);
-    });
-}
 
 // ===== Map Initialization =====
 function initMap() {
