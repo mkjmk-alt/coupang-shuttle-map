@@ -539,7 +539,7 @@ function isMobile() {
 function mapFlyTo(latlng, zoom, options = {}) {
     const targetZoom = zoom || map.getZoom();
     if (isMobile()) {
-        const sheetPx = window.innerHeight * 0.5; // bottom sheet = 50vh
+        const sheetPx = window.innerHeight * 0.333; // bottom sheet = 33.3vh (1/3)
         const point = map.project(L.latLng(latlng[0] || latlng.lat, latlng[1] || latlng.lng), targetZoom);
         point.y += sheetPx / 2; // shift center down so target appears in visible area
         const adjusted = map.unproject(point, targetZoom);
@@ -552,7 +552,7 @@ function mapFlyTo(latlng, zoom, options = {}) {
 // Helper: fit bounds with bottom sheet padding on mobile
 function mapFlyToBounds(bounds, options = {}) {
     if (isMobile()) {
-        const sheetPx = window.innerHeight * 0.5;
+        const sheetPx = window.innerHeight * 0.333;
         const padding = options.padding || [60, 60];
         map.flyToBounds(bounds, {
             ...options,

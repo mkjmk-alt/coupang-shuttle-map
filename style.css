@@ -79,8 +79,8 @@ html {
     bottom: 0;
     left: 0;
     right: 0;
-    height: 50dvh;
-    max-height: 50dvh;
+    height: 33.3dvh;
+    max-height: 33.3dvh;
     background: rgba(15, 23, 42, 0.9); /* Safari를 위해 불투명도 조정 */
     backdrop-filter: blur(12px);
     -webkit-backdrop-filter: blur(12px);
@@ -105,8 +105,8 @@ html {
 }
 
 .sidebar.expanded {
-    height: 50dvh;
-    max-height: 50dvh;
+    height: 33.3dvh;
+    max-height: 33.3dvh;
     transform: translateY(0);
     overflow-y: auto;
 }
