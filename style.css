@@ -81,9 +81,9 @@ html {
     right: 0;
     height: 50dvh;
     max-height: 50dvh;
-    background: var(--surface);
-    backdrop-filter: blur(24px);
-    -webkit-backdrop-filter: blur(24px);
+    background: rgba(15, 23, 42, 0.9); /* Safari를 위해 불투명도 조정 */
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
     z-index: 1001;
     padding: 0 16px 16px;
     border-radius: 20px 20px 0 0;
@@ -97,11 +97,11 @@ html {
     overflow-x: hidden;
     overscroll-behavior: contain;
     -webkit-overflow-scrolling: touch;
-    transform: translateY(0);
+    transform: translateZ(0); /* Safari 하드웨어 가속 강제 */
     transition: transform 0.35s cubic-bezier(0.4, 0, 0.2, 1),
         height 0.35s cubic-bezier(0.4, 0, 0.2, 1),
         max-height 0.35s cubic-bezier(0.4, 0, 0.2, 1);
-    will-change: transform;
+    will-change: transform, height;
 }
 
 .sidebar.expanded {
@@ -1363,16 +1363,17 @@ select:disabled {
 .ad-modal {
     position: fixed;
     top: 0; left: 0; right: 0; bottom: 0;
-    background: rgba(0, 0, 0, 0.75);
-    backdrop-filter: blur(8px);
-    -webkit-backdrop-filter: blur(8px);
+    background: rgba(0, 0, 0, 0.85); /* 블러 대신 배경색 농도 조절 */
+    backdrop-filter: blur(4px); /* 고사양 블러 제거 */
+    -webkit-backdrop-filter: blur(4px);
     display: flex;
     align-items: center;
     justify-content: center;
-    z-index: 9999; /* 매우 높게 설정하여 모든 요소를 덮음 */
+    z-index: 9999;
     padding: 20px;
     opacity: 0;
     transition: opacity 0.3s ease;
+    will-change: opacity;
 }
 
 .ad-modal.show {
