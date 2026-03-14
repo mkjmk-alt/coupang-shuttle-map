@@ -1434,3 +1434,72 @@ select:disabled {
 .ad-modal-footer b {
     color: var(--primary-light);
 }
+
+/* ===== SEO CONTENT SECTION ===== */
+.seo-content {
+    padding: 24px 20px;
+    margin-top: 20px;
+    border-top: 1px solid var(--border);
+    color: var(--text-muted);
+}
+
+.seo-section {
+    margin-bottom: 32px;
+}
+
+.seo-section h2 {
+    font-size: 18px;
+    font-weight: 800;
+    color: var(--text);
+    margin-bottom: 12px;
+}
+
+.seo-section h3 {
+    font-size: 15px;
+    font-weight: 700;
+    color: var(--text);
+    margin-bottom: 10px;
+}
+
+.seo-section p {
+    font-size: 13px;
+    line-height: 1.7;
+    margin-bottom: 12px;
+}
+
+.seo-section ul {
+    padding-left: 18px;
+    margin-bottom: 12px;
+}
+
+.seo-section li {
+    font-size: 13px;
+    line-height: 1.7;
+    margin-bottom: 6px;
+}
+
+.seo-section li strong {
+    color: var(--primary-light);
+}
+
+.seo-section details {
+    background: rgba(255, 255, 255, 0.03);
+    border-radius: 8px;
+    padding: 12px;
+    margin-bottom: 8px;
+    cursor: pointer;
+}
+
+.seo-section summary {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text);
+    outline: none;
+}
+
+.seo-section details p {
+    margin-top: 8px;
+    margin-bottom: 0;
+    font-size: 12px;
+    color: var(--text-muted);
+}
