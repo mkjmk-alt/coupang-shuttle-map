@@ -156,13 +156,20 @@ function setupEventListeners() {
     let adWaitTimer = null;
 
     compareToggleBtn.addEventListener('click', () => {
-        // 이미 켜져있는 경우 -> 바로 끕니다
+        // 토글 상태 변경
+        window.compareModeEnabled = !window.compareModeEnabled;
+
         if (window.compareModeEnabled) {
-            window.compareModeEnabled = false;
-            compareToggleBtn.classList.add('disabled');
+            // 켜기
+            compareToggleBtn.classList.add('active');
+            compareToggleBtn.innerHTML = `
+                <svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>
+                다중 비교 켜짐
+            `;
+        } else {
+            // 끄기
             compareToggleBtn.classList.remove('active');
             compareToggleBtn.innerHTML = `
-                <svg class="lock-icon" xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
                 다중 비교 켜기
             `;
             // 다중 비교 모드를 끌 때, 여러개가 선택되어 있었다면 가장 마지막 것 하나만 남깁니다.
@@ -170,11 +177,7 @@ function setupEventListeners() {
                 window.activeFCs = [window.activeFCs[window.activeFCs.length - 1]];
                 updateFCSelection();
             }
-            return;
         }
-
-        // 다중 비교를 켜려고 하는 경우 -> 광고 팝업 띄우기
-        showAdPopup();
     });
 
     const SHUTTLE_TIPS = [
