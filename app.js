@@ -9,6 +9,8 @@ let myLocationMarker = null;
 // Per-route storage for highlight/dim
 let routeLayerGroups = []; // { name, color, polyline, markers[], listEl, stopsEl }
 let activeRouteIndex = -1;
+window.activeFCs = [];
+window.compareModeEnabled = false;
 
 // ===== Color Palette for Routes =====
 const ROUTE_COLORS = [
@@ -146,8 +148,7 @@ function setupEventListeners() {
         return nameA.localeCompare(nameB, 'ko-KR');
     });
 
-    window.activeFCs = [];
-    window.compareModeEnabled = false;
+
 
     const compareToggleBtn = document.getElementById('compare-toggle-btn');
     const adModal = document.getElementById('ad-modal');
@@ -156,20 +157,12 @@ function setupEventListeners() {
     let adWaitTimer = null;
 
     compareToggleBtn.addEventListener('click', () => {
-        // 토글 상태 변경
-        window.compareModeEnabled = !window.compareModeEnabled;
-
+        // 이미 켜져있는 경우 -> 바로 끕니다
         if (window.compareModeEnabled) {
-            // 켜기
-            compareToggleBtn.classList.add('active');
-            compareToggleBtn.innerHTML = `
-                <svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>
-                다중 비교 켜짐
-            `;
-        } else {
-            // 끄기
+            window.compareModeEnabled = false;
             compareToggleBtn.classList.remove('active');
             compareToggleBtn.innerHTML = `
+                <svg class="lock-icon" xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
                 다중 비교 켜기
             `;
             // 다중 비교 모드를 끌 때, 여러개가 선택되어 있었다면 가장 마지막 것 하나만 남깁니다.
@@ -177,6 +170,20 @@ function setupEventListeners() {
                 window.activeFCs = [window.activeFCs[window.activeFCs.length - 1]];
                 updateFCSelection();
             }
+            return;
+        }
+
+        // 다중 비교를 켜려고 하는 경우 -> 광고 팝업 띄우기
+        if (adModal) {
+            showAdPopup();
+        } else {
+            // 모달이 주석처리 등으로 없는 경우 그냥 켭니다 (개발 편의성)
+            window.compareModeEnabled = true;
+            compareToggleBtn.classList.add('active');
+            compareToggleBtn.innerHTML = `
+                <svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>
+                다중 비교 켜짐
+            `;
         }
     });
 
@@ -244,7 +251,7 @@ function setupEventListeners() {
         const chipsContainer = document.getElementById('selection-chips');
         chipsContainer.innerHTML = '';
 
-        activeFCs.forEach(fc => {
+        window.activeFCs.forEach(fc => {
             const chip = document.createElement('div');
             chip.className = 'chip';
             chip.innerHTML = `<span>${fc}</span><div class="chip-close">&times;</div>`;
@@ -255,7 +262,7 @@ function setupEventListeners() {
             chipsContainer.appendChild(chip);
         });
 
-        if (activeFCs.length > 1) {
+        if (window.activeFCs.length > 1) {
             const clearBtn = document.createElement('div');
             clearBtn.className = 'chip';
             clearBtn.style.background = 'var(--bg-card)';
@@ -277,7 +284,7 @@ function setupEventListeners() {
         hideCenterInfo();
         updateMiniInfo();
 
-        if (activeFCs.length === 0) {
+        if (window.activeFCs.length === 0) {
             shiftSelect.disabled = true;
             showAllCenters();
             return;
@@ -285,7 +292,7 @@ function setupEventListeners() {
 
         shiftSelect.disabled = false;
         const allShifts = new Set();
-        activeFCs.forEach(fc => {
+        window.activeFCs.forEach(fc => {
             if (shuttleData[fc]?.shifts) {
                 Object.keys(shuttleData[fc].shifts).forEach(s => allShifts.add(s));
             }
@@ -303,8 +310,8 @@ function setupEventListeners() {
             shiftSelect.appendChild(option);
         });
 
-        if (activeFCs.length === 1) {
-            const fcCode = activeFCs[0];
+        if (window.activeFCs.length === 1) {
+            const fcCode = window.activeFCs[0];
             const center = shuttleData[fcCode].center;
             if (center) {
                 mapFlyTo([center.lat, center.lng], 12, { duration: 1.2 });
@@ -312,7 +319,7 @@ function setupEventListeners() {
             }
         } else {
             const bounds = L.latLngBounds();
-            activeFCs.forEach(fcCode => {
+            window.activeFCs.forEach(fcCode => {
                 const center = shuttleData[fcCode]?.center;
                 if (center) {
                     bounds.extend([center.lat, center.lng]);
@@ -323,8 +330,8 @@ function setupEventListeners() {
         }
 
         // Always show center info for the most recently selected center
-        if (activeFCs.length > 0) {
-            const lastFcCode = activeFCs[activeFCs.length - 1];
+        if (window.activeFCs.length > 0) {
+            const lastFcCode = window.activeFCs[window.activeFCs.length - 1];
             const lastCenter = shuttleData[lastFcCode]?.center;
             if (lastCenter) {
                 showCenterInfo(lastFcCode, lastCenter);
