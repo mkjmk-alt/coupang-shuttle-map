@@ -1,0 +1,18 @@
+{
+  "name": "coupang-shuttle-map",
+  "version": "1.0.0",
+  "description": "Coupang Shuttle Map - National Comparison Dashboard",
+  "main": "index.html",
+  "scripts": {
+    "start": "npx serve .",
+    "build": "echo 'No build needed for static project'",
+    "test": "echo \"Error: no test specified\" && exit 0"
+  },
+  "keywords": [
+    "coupang",
+    "shuttle",
+    "map"
+  ],
+  "author": "",
+  "license": "MIT"
+}
