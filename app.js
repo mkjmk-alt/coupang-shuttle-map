@@ -173,18 +173,34 @@ function setupEventListeners() {
             return;
         }
 
-        // 다중 비교를 켜려고 하는 경우 -> 광고 팝업 띄우기
-        if (adModal) {
-            showAdPopup();
-        } else {
-            // 모달이 주석처리 등으로 없는 경우 그냥 켭니다 (개발 편의성)
-            window.compareModeEnabled = true;
-            compareToggleBtn.classList.add('active');
-            compareToggleBtn.innerHTML = `
-                <svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>
-                다중 비교 켜짐
-            `;
-        }
+        // 다중 비교 활성화 (광고 모달이 주석처리되었으므로 바로 활성화)
+        window.compareModeEnabled = true;
+        compareToggleBtn.classList.add('active');
+        compareToggleBtn.innerHTML = `
+            <svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>
+            다중 비교 켜짐
+        `;
+    });
+
+    const compareAllBtn = document.getElementById('compare-all-btn');
+    compareAllBtn.addEventListener('click', () => {
+        if (!shuttleData || Object.keys(shuttleData).length === 0) return;
+        
+        window.activeFCs = Object.keys(shuttleData);
+        window.compareModeEnabled = true;
+        compareToggleBtn.classList.add('active');
+        compareToggleBtn.innerHTML = `
+            <svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>
+            다중 비교 켜짐
+        `;
+        
+        updateFCSelection();
+        
+        // Auto select All Shifts
+        shiftSelect.value = ALL_VALUE;
+        shiftSelect.dispatchEvent(new Event('change'));
+        
+        minimizeMobileSheet();
     });
 
     const SHUTTLE_TIPS = [
@@ -283,6 +299,7 @@ function setupEventListeners() {
         routeSelect.disabled = true;
         hideCenterInfo();
         updateMiniInfo();
+        updateStats();
 
         if (window.activeFCs.length === 0) {
             shiftSelect.disabled = true;
@@ -710,6 +727,27 @@ function showMultiRoute(fcCodes, shiftFilter) {
     let totalStops = 0;
     let allTimes = [];
 
+    // If comparing many FCs, add a warning/info header in the sidebar
+    if (fcCodes.length > 15) {
+        const fcHeader = document.createElement('div');
+        fcHeader.className = 'list-section-header';
+        fcHeader.style.background = 'rgba(245, 158, 11, 0.15)';
+        fcHeader.style.color = 'var(--accent)';
+        fcHeader.style.fontWeight = '800';
+        fcHeader.style.marginTop = '16px';
+        fcHeader.innerHTML = `<span class="section-icon">🌐</span> 전국 ${fcCodes.length}개 센터 노선 시각화 중`;
+        stopListEl.appendChild(fcHeader);
+        
+        const infoMsg = document.createElement('div');
+        infoMsg.style.padding = '8px 12px';
+        infoMsg.style.fontSize = '11px';
+        infoMsg.style.color = 'var(--text-muted)';
+        infoMsg.textContent = '지도의 각 노선을 클릭하여 상세 정보를 확인하세요. (성능을 위해 목록은 생략됩니다)';
+        stopListEl.appendChild(infoMsg);
+    }
+
+    const shouldRenderSidebar = fcCodes.length <= 15;
+
     fcCodes.forEach(fcCode => {
         const fc = shuttleData[fcCode];
         if (!fc) return;
@@ -722,8 +760,8 @@ function showMultiRoute(fcCodes, shiftFilter) {
 
         if (Object.keys(shiftsToShow).length === 0) return;
 
-        // If comparing multiple FCs, add a center separator
-        if (fcCodes.length > 1) {
+        // FC header for small counts
+        if (shouldRenderSidebar && fcCodes.length > 1) {
             const fcHeader = document.createElement('div');
             fcHeader.className = 'list-section-header';
             fcHeader.style.background = 'rgba(79, 70, 229, 0.15)';
@@ -736,7 +774,7 @@ function showMultiRoute(fcCodes, shiftFilter) {
 
         Object.entries(shiftsToShow).forEach(([shiftName, routes]) => {
             // Shift header
-            if (!shiftFilter) {
+            if (!shiftFilter && shouldRenderSidebar) {
                 const shiftHeader = document.createElement('div');
                 shiftHeader.className = 'list-section-header';
                 shiftHeader.innerHTML = `<span class="section-icon">🕐</span> ${shiftName} <span class="section-badge">${Object.keys(routes).length}개 노선</span>`;
@@ -758,8 +796,7 @@ function showMultiRoute(fcCodes, shiftFilter) {
                     color, weight: 3, opacity: 0.6, dashArray: '10, 6'
                 }).addTo(map);
 
-                // We use natively extended Canvas circleMarker for maximum performance
-                // Text is rendered directly onto the GPU canvas via our custom L.Canvas override above
+                // Markers (Canvas handles performance)
                 const dotMarkers = stops.map((stop, idx) => {
                     return L.circleMarker([stop.Latitude, stop.Longitude], {
                         radius: 7,
@@ -777,30 +814,36 @@ function showMultiRoute(fcCodes, shiftFilter) {
                     `);
                 });
 
-                // Route header in sidebar (collapsible)
-                const routeContainer = document.createElement('div');
-                routeContainer.className = 'route-group';
+                // Sidebar UI (only if few centers)
+                let routeHeader, stopsContainer;
+                if (shouldRenderSidebar) {
+                    const routeContainer = document.createElement('div');
+                    routeContainer.className = 'route-group';
 
-                const routeHeader = document.createElement('div');
-                routeHeader.className = 'route-header';
-                routeHeader.dataset.routeIdx = routeIdx;
-                routeHeader.innerHTML = `
-                    <div class="route-color-bar" style="background:${color};"></div>
-                    <div class="route-header-content">
-                        <div class="route-header-title">🚌 ${routeName}</div>
-                        <div class="route-header-meta">${stops.length}개 정류장 · ${stops[0]?.Time || ''} ~ ${stops[stops.length - 1]?.Time || ''}</div>
-                    </div>
-                    <div class="route-expand-icon">▼</div>
-                `;
+                    routeHeader = document.createElement('div');
+                    routeHeader.className = 'route-header';
+                    routeHeader.dataset.routeIdx = routeIdx;
+                    routeHeader.innerHTML = `
+                        <div class="route-color-bar" style="background:${color};"></div>
+                        <div class="route-header-content">
+                            <div class="route-header-title">🚌 ${routeName}</div>
+                            <div class="route-header-meta">${stops.length}개 정류장 · ${stops[0]?.Time || ''} ~ ${stops[stops.length - 1]?.Time || ''}</div>
+                        </div>
+                        <div class="route-expand-icon">▼</div>
+                    `;
 
-                // Stops container (hidden by default, LAZY RENDERED for performance)
-                const stopsContainer = document.createElement('div');
-                stopsContainer.className = 'route-stops-container collapsed';
-                stopsContainer.dataset.rendered = "false"; // flag for lazy loading
+                    stopsContainer = document.createElement('div');
+                    stopsContainer.className = 'route-stops-container collapsed';
+                    stopsContainer.dataset.rendered = "false";
 
-                routeContainer.appendChild(routeHeader);
-                routeContainer.appendChild(stopsContainer);
-                stopListEl.appendChild(routeContainer);
+                    routeContainer.appendChild(routeHeader);
+                    routeContainer.appendChild(stopsContainer);
+                    stopListEl.appendChild(routeContainer);
+
+                    routeHeader.addEventListener('click', () => {
+                        toggleRouteHighlight(routeIdx);
+                    });
+                }
 
                 // Store route group data
                 routeLayerGroups.push({
@@ -814,15 +857,9 @@ function showMultiRoute(fcCodes, shiftFilter) {
                     shiftName,
                     routeHeader,
                     stopsContainer,
-                    numberedMarkers: [] // created on highlight
+                    numberedMarkers: []
                 });
 
-                // Click handler for route header
-                routeHeader.addEventListener('click', () => {
-                    toggleRouteHighlight(routeIdx);
-                });
-
-                // Track for cleanup
                 currentPolylines.push(polyline);
                 currentMarkers.push(...dotMarkers);
             });
@@ -1102,4 +1139,37 @@ function showCenterInfo(fcCode, center) {
 
 function hideCenterInfo() {
     document.getElementById('center-info').style.display = 'none';
+}
+
+function updateStats() {
+    const statsPanel = document.getElementById('route-stats-panel');
+    if (!statsPanel) return;
+
+    if (window.activeFCs.length > 1) {
+        statsPanel.style.display = 'flex';
+        const statCenters = document.getElementById('stat-centers');
+        const statRoutes = document.getElementById('stat-routes');
+        const statStops = document.getElementById('stat-stops');
+
+        let totalRoutes = 0;
+        let totalStops = 0;
+
+        window.activeFCs.forEach(fcCode => {
+            const fc = shuttleData[fcCode];
+            if (fc && fc.shifts) {
+                Object.values(fc.shifts).forEach(routes => {
+                    totalRoutes += Object.keys(routes).length;
+                    Object.values(routes).forEach(stops => {
+                        totalStops += stops.length;
+                    });
+                });
+            }
+        });
+
+        statCenters.textContent = window.activeFCs.length;
+        statRoutes.textContent = totalRoutes.toLocaleString();
+        statStops.textContent = totalStops.toLocaleString();
+    } else {
+        statsPanel.style.display = 'none';
+    }
 }
