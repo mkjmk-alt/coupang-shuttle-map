@@ -1556,37 +1556,90 @@ select:disabled {
 
 .comparison-popup .leaflet-popup-content {
     margin: 0 !important;
-    width: 640px !important; /* 가로 2배 */
+    width: 640px !important;
     max-width: 90vw;
 }
 
 .custom-popup {
-    padding: 20px;
+    padding: 24px;
     color: var(--text);
+    width: 100%;
+    box-sizing: border-box;
+}
+
+.popup-route {
+    font-size: 14px;
+    font-weight: 800;
+    color: var(--primary-light);
+    margin-bottom: 4px;
+}
+
+.popup-time {
+    font-size: 18px;
+    font-weight: 900;
+    color: var(--text);
+    margin-bottom: 8px;
+}
+
+.popup-title {
+    font-size: 20px;
+    font-weight: 800;
+    color: var(--text);
+    margin-bottom: 10px;
+}
+
+.popup-addr {
+    font-size: 14px;
+    color: var(--text-muted);
+    margin-bottom: 15px;
 }
 
 .popup-photo-container {
-    margin-top: 15px;
-    background: rgba(0, 0, 0, 0.3);
-    border-radius: 10px;
-    padding: 10px;
+    margin-top: 20px;
+    background: rgba(0, 0, 0, 0.4);
+    border-radius: 12px;
+    padding: 12px;
     border: 1px solid var(--border);
 }
 
 .photo-label {
-    font-size: 13px;
+    font-size: 14px;
     font-weight: 800;
     color: var(--primary-light);
-    margin-bottom: 10px;
+    margin-bottom: 12px;
 }
 
 .popup-photo {
     width: 100%;
     height: auto;
-    min-height: 200px;
-    border-radius: 8px;
+    border-radius: 10px;
     cursor: zoom-in;
-    object-fit: cover;
+    display: block;
+}
+
+.popup-links {
+    margin-top: 20px;
+    display: flex;
+    gap: 12px;
+}
+
+.popup-links a {
+    flex: 1;
+    text-align: center;
+    padding: 10px;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    color: var(--text);
+    font-size: 13px;
+    font-weight: 700;
+    text-decoration: none;
+    transition: var(--transition);
+}
+
+.popup-links a:hover {
+    background: var(--primary);
+    border-color: var(--primary);
 }
 
 .photo-hint {
