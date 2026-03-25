@@ -5,6 +5,7 @@ let currentMarkers = [];
 let currentPolylines = [];
 let centerMarkers = [];
 let nationalLayerGroup = null; 
+let focusMarker = null; // 정류장 강조용 마커
 window.activeFCs = [];
 
 const ROUTE_COLORS = [
@@ -12,7 +13,6 @@ const ROUTE_COLORS = [
     '#EC4899', '#06B6D4', '#F97316', '#14B8A6', '#6366F1'
 ];
 
-// 한국 영역 바운더리 (좌표 필터링 및 데이터 무결성 체크용)
 const KOREA_BOUNDS = {
     minLat: 33.0,
     maxLat: 39.0,
@@ -64,8 +64,10 @@ async function loadData() {
 // ===== Helpers =====
 function isWithinKorea(lat, lng) {
     if (!lat || !lng) return false;
-    return lat >= KOREA_BOUNDS.minLat && lat <= KOREA_BOUNDS.maxLat &&
-           lng >= KOREA_BOUNDS.minLng && lng <= KOREA_BOUNDS.maxLng;
+    const nLat = parseFloat(lat);
+    const nLng = parseFloat(lng);
+    return nLat >= KOREA_BOUNDS.minLat && nLat <= KOREA_BOUNDS.maxLat &&
+           nLng >= KOREA_BOUNDS.minLng && nLng <= KOREA_BOUNDS.maxLng;
 }
 
 // ===== Populate UI =====
@@ -104,7 +106,7 @@ function setupEventListeners() {
                     shiftSelect.appendChild(opt);
                 });
             }
-            if (nationalLayerGroup) nationalLayerGroup.clearLayers();
+            clearNational();
             toggleRightSidebar(false);
         });
     }
@@ -133,7 +135,7 @@ function setupEventListeners() {
             const route = e.target.value;
 
             if (fc && shift && route) {
-                if (nationalLayerGroup) nationalLayerGroup.clearLayers();
+                clearNational();
                 toggleRightSidebar(false);
                 const stops = shuttleData[fc].shifts[shift][route];
                 const center = shuttleData[fc].center;
@@ -173,11 +175,19 @@ function toggleRightSidebar(show) {
     }
 }
 
+function clearNational() {
+    if (nationalLayerGroup) nationalLayerGroup.clearLayers();
+    if (focusMarker) {
+        map.removeLayer(focusMarker);
+        focusMarker = null;
+    }
+}
+
 // ===== Rendering =====
 
 function showNationalRoutes() {
     clearRoute();
-    if (nationalLayerGroup) nationalLayerGroup.clearLayers();
+    clearNational();
     
     const bounds = L.latLngBounds();
     let colorIdx = 0;
@@ -199,14 +209,12 @@ function showNationalRoutes() {
         const shifts = fc.shifts;
         if (!shifts) return;
 
-        // 왼쪽 사이드바용 그룹 (정상 데이터)
         const leftFcGroup = document.createElement('div');
         leftFcGroup.className = 'national-group';
         leftFcGroup.innerHTML = `<div class="national-fc-header">🏢 ${fc.center?.name || fcCode}</div>`;
         const leftFcRoutesList = document.createElement('div');
         leftFcGroup.appendChild(leftFcRoutesList);
 
-        // 오른쪽 사이드바용 그룹 (오류 데이터)
         const rightFcGroup = document.createElement('div');
         rightFcGroup.className = 'national-group';
         rightFcGroup.innerHTML = `<div class="national-fc-header" style="background:rgba(239, 68, 68, 0.1); color:var(--danger);">❌ ${fcCode} 오류 데이터</div>`;
@@ -218,11 +226,9 @@ function showNationalRoutes() {
             Object.keys(routes).forEach(routeName => {
                 const stops = routes[routeName];
                 
-                // 데이터 분류
                 const validStops = stops.filter(s => isWithinKorea(s.Latitude, s.Longitude));
                 const invalidStops = stops.filter(s => !isWithinKorea(s.Latitude, s.Longitude));
 
-                // 1. 정상 데이터 처리 (왼쪽 사이드바 & 지도)
                 if (validStops.length > 0) {
                     const color = ROUTE_COLORS[colorIdx % ROUTE_COLORS.length];
                     colorIdx++;
@@ -234,17 +240,9 @@ function showNationalRoutes() {
                         bounds.extend(latlng);
 
                         const dotMarker = L.circleMarker(latlng, {
-                            radius: 5,
-                            fillColor: color,
-                            color: "#fff",
-                            weight: 1,
-                            opacity: 1,
-                            fillOpacity: 0.8
-                        }).bindPopup(`
-                            <div class="popup-route">🏢 [${fcCode}] ${routeName}</div>
-                            <div class="popup-time">🕐 ${stop.Time}</div>
-                            <div class="popup-title">${idx + 1}. ${stop.Name}</div>
-                        `);
+                            radius: 5, fillColor: color, color: "#fff", weight: 1, opacity: 1, fillOpacity: 0.8
+                        }).bindPopup(createStopPopup(stop, routeName, fcCode, idx));
+                        
                         nationalLayerGroup.addLayer(dotMarker);
                     });
 
@@ -253,18 +251,39 @@ function showNationalRoutes() {
 
                     const routeItem = document.createElement('div');
                     routeItem.className = 'national-route-item';
+                    const routeId = `route-${fcCode}-${routeName}`.replace(/\s+/g, '-');
+                    routeItem.id = routeId;
                     routeItem.innerHTML = `
                         <div class="national-route-name" style="color:${color};">🚌 ${routeName}</div>
-                        <div class="national-route-meta">${shiftName} · ${validStops.length}개 정류장</div>
+                        <div class="national-route-meta">${shiftName} · ${validStops.length}개 정류장 <span class="toggle-stops">▼</span></div>
+                        <div class="nested-stop-list" style="display:none;"></div>
                     `;
+                    
+                    const nestedList = routeItem.querySelector('.nested-stop-list');
+                    validStops.forEach((stop, idx) => {
+                        const stopEl = document.createElement('div');
+                        stopEl.className = 'nested-stop-item';
+                        stopEl.innerHTML = `<span class="n-idx">${idx+1}</span> ${stop.Name} <span class="n-time">${stop.Time}</span>`;
+                        stopEl.onclick = (e) => {
+                            e.stopPropagation();
+                            focusStopOnMap(stop, routeName, fcCode, idx, color);
+                        };
+                        nestedList.appendChild(stopEl);
+                    });
+
                     routeItem.onclick = () => {
-                        const routeBounds = L.latLngBounds(path);
-                        if (routeBounds.isValid()) map.flyToBounds(routeBounds, { padding: [100, 100], duration: 1 });
+                        const isExpanded = nestedList.style.display === 'block';
+                        nestedList.style.display = isExpanded ? 'none' : 'block';
+                        routeItem.querySelector('.toggle-stops').textContent = isExpanded ? '▼' : '▲';
+                        
+                        if (!isExpanded) {
+                            const routeBounds = L.latLngBounds(path);
+                            if (routeBounds.isValid()) map.flyToBounds(routeBounds, { padding: [100, 100], duration: 1 });
+                        }
                     };
                     leftFcRoutesList.appendChild(routeItem);
                 }
 
-                // 2. 오류 데이터 처리 (오른쪽 사이드바)
                 if (invalidStops.length > 0) {
                     hasInvalidData = true;
                     invalidStops.forEach(stop => {
@@ -281,28 +300,73 @@ function showNationalRoutes() {
             });
         });
         
-        if (leftFcRoutesList.children.length > 0) listElToAppend(leftListEl, leftFcGroup);
-        if (rightFcRoutesList.children.length > 0) listElToAppend(rightListEl, rightFcGroup);
+        if (leftFcRoutesList.children.length > 0) if (leftListEl) leftListEl.appendChild(leftFcGroup);
+        if (rightFcRoutesList.children.length > 0) if (rightListEl) rightListEl.appendChild(rightFcGroup);
     });
-
-    function listElToAppend(parent, child) {
-        if (parent) parent.appendChild(child);
-    }
 
     if (bounds.isValid()) {
         map.flyToBounds(bounds, { padding: [50, 50], duration: 1.5 });
     }
     
-    // 오류 데이터가 있을 때만 우측 사이드바 표시
     toggleRightSidebar(hasInvalidData);
-    if (!hasInvalidData && rightListEl) {
-        rightListEl.innerHTML = '<div class="list-placeholder">모든 데이터가 한국 내 정상 범위에 있습니다. ✅</div>';
+}
+
+function createStopPopup(stop, routeName, fcCode, index) {
+    const imageUrl = stop["Image URL"];
+    const imgHtml = imageUrl ? `
+        <div class="popup-photo-container">
+            <div class="photo-label">📸 센터 등록 정류장 사진</div>
+            <img src="${imageUrl}" class="popup-photo" alt="${stop.Name}" onclick="window.open('${imageUrl}', '_blank')">
+            <div class="photo-hint">* 사진을 클릭하면 크게 볼 수 있습니다</div>
+        </div>
+    ` : '<div class="popup-no-photo">등록된 사진이 없습니다.</div>';
+
+    return `
+        <div class="custom-popup">
+            <div class="popup-route">🏢 [${fcCode}] ${routeName}</div>
+            <div class="popup-time">🕐 ${stop.Time}</div>
+            <div class="popup-title">${index + 1}. ${stop.Name}</div>
+            <div class="popup-addr">${stop.Address || ''}</div>
+            ${imgHtml}
+            <div class="popup-links">
+                <a href="https://map.naver.com/v5/search/${stop.Latitude},${stop.Longitude}" target="_blank">네이버 지도</a>
+                <a href="https://map.kakao.com/link/map/${stop.Name},${stop.Latitude},${stop.Longitude}" target="_blank">카카오 맵</a>
+            </div>
+        </div>
+    `;
+}
+
+function focusStopOnMap(stop, routeName, fcCode, index, color) {
+    const latlng = [parseFloat(stop.Latitude), parseFloat(stop.Longitude)];
+    
+    if (focusMarker) {
+        map.removeLayer(focusMarker);
     }
+
+    // 강조 마커 생성
+    focusMarker = L.circleMarker(latlng, {
+        radius: 12,
+        fillColor: color || '#ff3e00',
+        color: '#fff',
+        weight: 3,
+        opacity: 1,
+        fillOpacity: 0.9,
+        className: 'focus-ping'
+    }).addTo(map);
+
+    map.flyTo(latlng, 17, { duration: 1 });
+    
+    setTimeout(() => {
+        focusMarker.bindPopup(createStopPopup(stop, routeName, fcCode, index), {
+            maxWidth: 320,
+            className: 'comparison-popup'
+        }).openPopup();
+    }, 1000);
 }
 
 function renderSingleRoute(stops, center, routeName, color, fcCode) {
     clearRoute();
-    if (nationalLayerGroup) nationalLayerGroup.clearLayers();
+    clearNational();
     
     const bounds = L.latLngBounds();
     const path = [];
@@ -331,12 +395,7 @@ function renderSingleRoute(stops, center, routeName, color, fcCode) {
             iconSize: [26, 26], iconAnchor: [13, 13]
         });
 
-        const marker = L.marker(latlng, { icon }).addTo(map).bindPopup(`
-            <div class="popup-route">🚌 ${routeName}</div>
-            <div class="popup-time">🕐 ${stop.Time} 출발</div>
-            <div class="popup-title">${index + 1}. ${stop.Name}</div>
-            <div class="popup-addr">${stop.Address}</div>
-        `);
+        const marker = L.marker(latlng, { icon }).addTo(map).bindPopup(createStopPopup(stop, routeName, fcCode, index));
         currentMarkers.push(marker);
 
         if (stopListEl) {
@@ -350,8 +409,7 @@ function renderSingleRoute(stops, center, routeName, color, fcCode) {
                 </div>
             `;
             item.onclick = () => {
-                map.flyTo(latlng, 16);
-                marker.openPopup();
+                focusStopOnMap(stop, routeName, fcCode, index, color);
             };
             stopListEl.appendChild(item);
         }
