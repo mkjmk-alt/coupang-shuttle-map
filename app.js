@@ -87,6 +87,13 @@ function getDistance(lat1, lon1, lat2, lon2) {
     return R * c;
 }
 
+function parseTimeToMinutes(timeStr) {
+    if (!timeStr || !timeStr.includes(':')) return null;
+    const [h, m] = timeStr.split(':').map(Number);
+    if (isNaN(h) || isNaN(m)) return null;
+    return h * 60 + m;
+}
+
 // ===== Right Sidebar Controller =====
 
 function refreshRightSidebar() {
@@ -140,10 +147,7 @@ function renderNationalRoutesList(listEl) {
                         const isExpanded = nestedList.style.display === 'block';
                         nestedList.style.display = isExpanded ? 'none' : 'block';
                         routeItem.querySelector('.toggle-stops').textContent = isExpanded ? '▼' : '▲';
-                        if (!isExpanded) {
-                            // 특정 노선 고립화 (Isoalte)
-                            isolateRouteOnMap(fcCode, shiftName, routeName, color);
-                        }
+                        if (!isExpanded) { isolateRouteOnMap(fcCode, shiftName, routeName, color); }
                     };
                     fcRoutesList.appendChild(routeItem);
                 }
@@ -156,7 +160,8 @@ function renderNationalRoutesList(listEl) {
 function renderQAAnalysis(listEl) {
     let suspects = [];
     Object.keys(shuttleData).forEach(fcCode => {
-        const shifts = shuttleData[fcCode].shifts || {};
+        const fc = shuttleData[fcCode];
+        const shifts = fc.shifts || {};
         Object.keys(shifts).forEach(shiftName => {
             const routes = shifts[shiftName];
             Object.keys(routes).forEach(routeName => {
@@ -164,11 +169,32 @@ function renderQAAnalysis(listEl) {
                 for (let i = 0; i < stops.length; i++) {
                     const stop = stops[i];
                     if (!isWithinKorea(stop.Latitude, stop.Longitude)) continue;
+
                     if (i > 0) {
                         const prev = stops[i - 1];
                         if (isWithinKorea(prev.Latitude, prev.Longitude)) {
                             const dist = getDistance(stop.Latitude, stop.Longitude, prev.Latitude, prev.Longitude);
-                            if (dist > 30) suspects.push({ fcCode, shiftName, routeName, stop, reason: `급격한 경로 이탈 (${dist.toFixed(1)}km)`, color: 'var(--danger)' });
+                            
+                            // 1. 단순 거리적 이상치 (30km 이상 점프)
+                            if (dist > 30) suspects.push({ fcCode, shiftName, routeName, stop, reason: `급격한 좌표 이탈 (${dist.toFixed(1)}km)`, color: 'var(--danger)' });
+
+                            // 2. 시간 데이터 기반 초고속 주행 감지 (현실 불가능 속도)
+                            const t1 = parseTimeToMinutes(prev.Time);
+                            const t2 = parseTimeToMinutes(stop.Time);
+                            
+                            if (t1 !== null && t2 !== null) {
+                                const timeDiff = t2 - t1;
+                                if (timeDiff > 0) {
+                                    const speed = dist / (timeDiff / 60); // km/h
+                                    if (speed > 100) { // 시속 100km 이상은 정지 및 승하차 시간 포함 불가능 수준
+                                        suspects.push({ fcCode, shiftName, routeName, stop, reason: `현실 불가능 시속 (${speed.toFixed(0)}km/h 예상)`, color: '#ef4444' });
+                                    }
+                                } else if (timeDiff < 0) {
+                                    suspects.push({ fcCode, shiftName, routeName, stop, reason: `시간 데이터 역행 (${prev.Time} -> ${stop.Time})`, color: '#f59e0b' });
+                                } else if (timeDiff === 0 && dist > 1) {
+                                    suspects.push({ fcCode, shiftName, routeName, stop, reason: `동일 시간대 위치 차이 (${dist.toFixed(1)}km)`, color: '#ec4899' });
+                                }
+                            }
                         }
                     }
                 }
@@ -184,7 +210,7 @@ function renderQAAnalysis(listEl) {
         Object.keys(grouped).sort().forEach(fcCode => {
             const groupEl = document.createElement('div');
             groupEl.className = 'national-group';
-            groupEl.innerHTML = `<div class="national-fc-header">🏢 [${fcCode}] 의심 정류장 ${grouped[fcCode].length}개</div>`;
+            groupEl.innerHTML = `<div class="national-fc-header">🏭 [${fcCode}] 의심 정류장 ${grouped[fcCode].length}개</div>`;
             grouped[fcCode].forEach((item, idx) => {
                 const itemEl = document.createElement('div');
                 itemEl.className = 'national-route-item qa-item';
@@ -193,7 +219,7 @@ function renderQAAnalysis(listEl) {
                     <div class="national-route-name">${item.routeName}</div>
                     <div class="qa-stop-name">${item.stop.Name}</div>
                     <div class="qa-reason" style="color:${item.color}">${item.reason}</div>
-                    <div class="qa-meta">${item.stop.Address || '주소 정보 없음'}</div>
+                    <div class="qa-meta">이전 정류장 대비 분석 (${item.stop.Time})</div>
                 `;
                 itemEl.onclick = () => focusStopOnMap(item.stop, item.routeName, item.fcCode, idx, item.color === 'var(--danger)' ? '#ef4444' : '#f59e0b', item.shiftName);
                 groupEl.appendChild(itemEl);
@@ -357,21 +383,16 @@ function isolateRouteOnMap(fcCode, shiftName, routeName, color) {
     clearNational();
     const stops = shuttleData[fcCode]?.shifts?.[shiftName]?.[routeName];
     if (!stops) return;
-
     const validStops = stops.filter(s => isWithinKorea(s.Latitude, s.Longitude));
     const bounds = L.latLngBounds();
     const path = [];
-
     validStops.forEach((stop, idx) => {
         const latlng = [parseFloat(stop.Latitude), parseFloat(stop.Longitude)];
-        path.push(latlng);
-        bounds.extend(latlng);
-        const marker = L.circleMarker(latlng, { radius: 6, fillColor: color, color: "#fff", weight: 2, opacity: 1, fillOpacity: 0.9 })
-            .bindPopup(createStopPopup(stop, routeName, fcCode, idx), { minWidth: 600 });
-        nationalLayerGroup.addLayer(marker);
+        path.push(latlng); bounds.extend(latlng);
+        nationalLayerGroup.addLayer(L.circleMarker(latlng, { radius: 6, fillColor: color, color: "#fff", weight: 2, opacity: 1, fillOpacity: 0.9 })
+            .bindPopup(createStopPopup(stop, routeName, fcCode, idx), { minWidth: 600 }));
     });
-
-    const poly = L.polyline(path, { color, weight: 5, opacity: 0.8 }).addTo(nationalLayerGroup);
+    L.polyline(path, { color, weight: 5, opacity: 0.8 }).addTo(nationalLayerGroup);
     if (bounds.isValid()) map.flyToBounds(bounds, { padding: [100, 100], duration: 1 });
 }
 
@@ -381,7 +402,6 @@ function showNationalRoutesOnMap() {
     clearRoute(); clearNational();
     const bounds = L.latLngBounds();
     let colorIdx = 0;
-
     Object.keys(shuttleData).forEach(fcCode => {
         const shifts = shuttleData[fcCode].shifts || {};
         Object.keys(shifts).forEach(shiftName => {
@@ -394,9 +414,8 @@ function showNationalRoutesOnMap() {
                     validStops.forEach((stop, idx) => {
                         const latlng = [parseFloat(stop.Latitude), parseFloat(stop.Longitude)];
                         path.push(latlng); bounds.extend(latlng);
-                        const dotMarker = L.circleMarker(latlng, { radius: 4, fillColor: color, color: "#fff", weight: 1, opacity: 0.6, fillOpacity: 0.4 })
-                            .bindPopup(createStopPopup(stop, routeName, fcCode, idx), { minWidth: 600 });
-                        nationalLayerGroup.addLayer(dotMarker);
+                        nationalLayerGroup.addLayer(L.circleMarker(latlng, { radius: 4, fillColor: color, color: "#fff", weight: 1, opacity: 0.6, fillOpacity: 0.4 })
+                            .bindPopup(createStopPopup(stop, routeName, fcCode, idx), { minWidth: 600 }));
                     });
                     nationalLayerGroup.addLayer(L.polyline(path, { color, weight: 1, opacity: 0.2 }));
                 }
@@ -442,9 +461,7 @@ function renderSingleRoute(stops, center, routeName, color, fcCode) {
     if (stopListEl) stopListEl.innerHTML = '';
     if (document.getElementById('route-details')) document.getElementById('route-details').style.display = 'block';
     if (document.getElementById('route-title')) document.getElementById('route-title').textContent = "📍 노선 정류장";
-
     if (center && isWithinKorea(center.lat, center.lng)) bounds.extend([parseFloat(center.lat), parseFloat(center.lng)]);
-
     stops.forEach((stop, index) => {
         if (!isWithinKorea(stop.Latitude, stop.Longitude)) return;
         const latlng = [parseFloat(stop.Latitude), parseFloat(stop.Longitude)];
@@ -467,7 +484,6 @@ function clearRoute() {
     currentMarkers.forEach(m => map.removeLayer(m));
     currentPolylines.forEach(l => map.removeLayer(l));
     currentMarkers = []; currentPolylines = [];
-    if (document.getElementById('route-details')) document.getElementById('route-details').style.display = 'none';
 }
 
 function showAllCenters() {
