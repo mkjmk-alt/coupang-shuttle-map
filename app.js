@@ -94,6 +94,13 @@ function parseTimeToMinutes(timeStr) {
     return h * 60 + m;
 }
 
+// 공통 팝업 설정 객체
+const POPUP_OPTIONS = {
+    minWidth: 600,
+    maxWidth: 600,
+    className: 'comparison-popup-balanced'
+};
+
 // ===== Right Sidebar Controller =====
 
 function refreshRightSidebar() {
@@ -186,7 +193,7 @@ function renderQAAnalysis(listEl) {
                                 const timeDiff = t2 - t1;
                                 if (timeDiff > 0) {
                                     const speed = dist / (timeDiff / 60); // km/h
-                                    if (speed > 100) { // 시속 100km 이상은 정지 및 승하차 시간 포함 불가능 수준
+                                    if (speed > 100) { // 시속 100km 이상은 정치 및 승하차 시간 포함 불가능 수준
                                         suspects.push({ fcCode, shiftName, routeName, stop, reason: `현실 불가능 시속 (${speed.toFixed(0)}km/h 예상)`, color: '#ef4444' });
                                     }
                                 } else if (timeDiff < 0) {
@@ -390,7 +397,7 @@ function isolateRouteOnMap(fcCode, shiftName, routeName, color) {
         const latlng = [parseFloat(stop.Latitude), parseFloat(stop.Longitude)];
         path.push(latlng); bounds.extend(latlng);
         nationalLayerGroup.addLayer(L.circleMarker(latlng, { radius: 6, fillColor: color, color: "#fff", weight: 2, opacity: 1, fillOpacity: 0.9 })
-            .bindPopup(createStopPopup(stop, routeName, fcCode, idx), { minWidth: 600 }));
+            .bindPopup(createStopPopup(stop, routeName, fcCode, idx), POPUP_OPTIONS));
     });
     L.polyline(path, { color, weight: 5, opacity: 0.8 }).addTo(nationalLayerGroup);
     if (bounds.isValid()) map.flyToBounds(bounds, { padding: [100, 100], duration: 1 });
@@ -415,7 +422,7 @@ function showNationalRoutesOnMap() {
                         const latlng = [parseFloat(stop.Latitude), parseFloat(stop.Longitude)];
                         path.push(latlng); bounds.extend(latlng);
                         nationalLayerGroup.addLayer(L.circleMarker(latlng, { radius: 4, fillColor: color, color: "#fff", weight: 1, opacity: 0.6, fillOpacity: 0.4 })
-                            .bindPopup(createStopPopup(stop, routeName, fcCode, idx), { minWidth: 600 }));
+                            .bindPopup(createStopPopup(stop, routeName, fcCode, idx), POPUP_OPTIONS));
                     });
                     nationalLayerGroup.addLayer(L.polyline(path, { color, weight: 1, opacity: 0.2 }));
                 }
@@ -450,7 +457,7 @@ function focusStopOnMap(stop, routeName, fcCode, index, color, shiftName) {
     focusMarker = L.circleMarker(latlng, { radius: 12, fillColor: color, color: '#fff', weight: 4, opacity: 1, fillOpacity: 0.9, className: 'focus-ping' }).addTo(map);
     map.flyTo(latlng, 17, { duration: 1 });
     setTimeout(() => {
-        focusMarker.bindPopup(createStopPopup(stop, routeName, fcCode, index), { minWidth: 600, maxWidth: 600, className: 'comparison-popup-balanced' }).openPopup();
+        focusMarker.bindPopup(createStopPopup(stop, routeName, fcCode, index), POPUP_OPTIONS).openPopup();
     }, 1000);
 }
 
@@ -467,7 +474,7 @@ function renderSingleRoute(stops, center, routeName, color, fcCode) {
         const latlng = [parseFloat(stop.Latitude), parseFloat(stop.Longitude)];
         path.push(latlng); bounds.extend(latlng);
         const marker = L.marker(latlng, { icon: L.divIcon({ className: 'stop-icon', html: `<div class="stop-marker-inner" style="background:${color};">${index + 1}</div>`, iconSize: [26, 26], iconAnchor: [13, 13] }) })
-            .addTo(map).bindPopup(createStopPopup(stop, routeName, fcCode, index), { minWidth: 600, maxWidth: 600, className: 'comparison-popup-balanced' });
+            .addTo(map).bindPopup(createStopPopup(stop, routeName, fcCode, index), POPUP_OPTIONS);
         currentMarkers.push(marker);
         if (stopListEl) {
             const item = document.createElement('div'); item.className = 'stop-item';
