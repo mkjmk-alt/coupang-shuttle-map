@@ -5,7 +5,7 @@
   "main": "index.html",
   "scripts": {
     "start": "npx serve .",
-    "build": "echo 'No build needed for static project'",
+    "build": "rm -rf out && mkdir -p out && cp index.html style.css app.js favicon.ico manifest.json ads.txt out/ && cp -r data out/",
     "test": "echo \"Error: no test specified\" && exit 0"
   },
   "keywords": [
