@@ -7,6 +7,7 @@ let centerMarkers = [];
 let nationalLayerGroup = null; 
 let focusMarker = null; 
 let currentRightTab = 'national'; 
+let currentQAFilter = 'all'; 
 window.activeFCs = [];
 
 const ROUTE_COLORS = [
@@ -105,8 +106,12 @@ const POPUP_OPTIONS = {
 
 function refreshRightSidebar() {
     const listEl = document.getElementById('national-route-list');
+    const filterBar = document.getElementById('qa-filter-bar');
     if (!listEl) return;
     listEl.innerHTML = '';
+
+    // QA 탭일 때만 필터 바를 보여줌
+    if (filterBar) filterBar.style.display = currentRightTab === 'qa' ? 'flex' : 'none';
 
     if (currentRightTab === 'national') {
         renderNationalRoutesList(listEl);
@@ -182,24 +187,36 @@ function renderQAAnalysis(listEl) {
                         if (isWithinKorea(prev.Latitude, prev.Longitude)) {
                             const dist = getDistance(stop.Latitude, stop.Longitude, prev.Latitude, prev.Longitude);
                             
-                            // 1. 단순 거리적 이상치 (30km 이상 점프)
-                            if (dist > 30) suspects.push({ fcCode, shiftName, routeName, stop, reason: `급격한 좌표 이탈 (${dist.toFixed(1)}km)`, color: 'var(--danger)' });
+                            // 1. 단순 거리적 이상치
+                            if (dist > 30) suspects.push({ 
+                                type: 'distance', fcCode, shiftName, routeName, stop, 
+                                reason: `급격한 좌표 이탈 (${dist.toFixed(1)}km)`, color: 'var(--danger)' 
+                            });
 
-                            // 2. 시간 데이터 기반 초고속 주행 감지 (현실 불가능 속도)
+                            // 2. 시간 데이터 기반 주행 감지
                             const t1 = parseTimeToMinutes(prev.Time);
                             const t2 = parseTimeToMinutes(stop.Time);
                             
                             if (t1 !== null && t2 !== null) {
                                 const timeDiff = t2 - t1;
                                 if (timeDiff > 0) {
-                                    const speed = dist / (timeDiff / 60); // km/h
-                                    if (speed > 100) { // 시속 100km 이상은 정치 및 승하차 시간 포함 불가능 수준
-                                        suspects.push({ fcCode, shiftName, routeName, stop, reason: `현실 불가능 시속 (${speed.toFixed(0)}km/h 예상)`, color: '#ef4444' });
+                                    const speed = dist / (timeDiff / 60);
+                                    if (speed > 100) {
+                                        suspects.push({ 
+                                            type: 'speed', fcCode, shiftName, routeName, stop, 
+                                            reason: `현실 불가능 시속 (${speed.toFixed(0)}km/h 예상)`, color: '#ef4444' 
+                                        });
                                     }
                                 } else if (timeDiff < 0) {
-                                    suspects.push({ fcCode, shiftName, routeName, stop, reason: `시간 데이터 역행 (${prev.Time} -> ${stop.Time})`, color: '#f59e0b' });
+                                    suspects.push({ 
+                                        type: 'time', fcCode, shiftName, routeName, stop, 
+                                        reason: `시간 데이터 역행 (${prev.Time} -> ${stop.Time})`, color: '#f59e0b' 
+                                    });
                                 } else if (timeDiff === 0 && dist > 1) {
-                                    suspects.push({ fcCode, shiftName, routeName, stop, reason: `동일 시간대 위치 차이 (${dist.toFixed(1)}km)`, color: '#ec4899' });
+                                    suspects.push({ 
+                                        type: 'speed', fcCode, shiftName, routeName, stop, 
+                                        reason: `동일 시간대 위치 차이 (${dist.toFixed(1)}km)`, color: '#ec4899' 
+                                    });
                                 }
                             }
                         }
@@ -209,8 +226,13 @@ function renderQAAnalysis(listEl) {
         });
     });
 
+    // 필터링 적용
+    if (currentQAFilter !== 'all') {
+        suspects = suspects.filter(s => s.type === currentQAFilter);
+    }
+
     if (suspects.length === 0) {
-        listEl.innerHTML = '<div class="empty-qa">✅ 발견된 데이터 오류가 없습니다.</div>';
+        listEl.innerHTML = `<div class="empty-qa">✅ 발견된 ${currentQAFilter === 'all' ? '' : currentQAFilter.toUpperCase()} 데이터 오류가 없습니다.</div>`;
     } else {
         const grouped = {};
         suspects.forEach(s => { if (!grouped[s.fcCode]) grouped[s.fcCode] = []; grouped[s.fcCode].push(s); });
@@ -296,6 +318,7 @@ function setupEventListeners() {
     const compareAllBtn = document.getElementById('compare-all-btn');
     const closeRightSidebar = document.getElementById('close-right-sidebar');
     const tabs = document.querySelectorAll('.s-tab');
+    const filterBtns = document.querySelectorAll('.f-btn');
 
     if (fcSelect) {
         fcSelect.addEventListener('change', (e) => {
@@ -360,6 +383,14 @@ function setupEventListeners() {
         tab.addEventListener('click', (e) => {
             currentRightTab = tab.dataset.tab;
             updateTabs(); refreshRightSidebar();
+        });
+    });
+
+    filterBtns.forEach(btn => {
+        btn.addEventListener('click', () => {
+            currentQAFilter = btn.dataset.filter;
+            filterBtns.forEach(b => b.classList.toggle('active', b.dataset.filter === currentQAFilter));
+            refreshRightSidebar();
         });
     });
 

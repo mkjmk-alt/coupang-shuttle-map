@@ -1732,6 +1732,44 @@ select:disabled {
     box-shadow: 0 2px 8px rgba(79, 70, 229, 0.4);
 }
 
+.qa-filter-bar {
+    display: flex;
+    background: rgba(0, 0, 0, 0.4);
+    padding: 8px;
+    gap: 6px;
+    border-bottom: 1px solid var(--border);
+    overflow-x: auto;
+    scrollbar-width: none;
+}
+
+.qa-filter-bar::-webkit-scrollbar {
+    display: none;
+}
+
+.f-btn {
+    flex: 1;
+    padding: 6px 10px;
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--text-muted);
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 4px;
+    cursor: pointer;
+    transition: all 0.2s;
+    white-space: nowrap;
+}
+
+.f-btn:hover {
+    background: rgba(255, 255, 255, 0.1);
+}
+
+.f-btn.active {
+    background: var(--primary);
+    color: #fff;
+    border-color: var(--primary);
+}
+
 .qa-item {
     padding: 12px;
     cursor: pointer;
