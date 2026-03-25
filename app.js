@@ -242,7 +242,7 @@ function showNationalRoutes() {
                         const dotMarker = L.circleMarker(latlng, {
                             radius: 5, fillColor: color, color: "#fff", weight: 1, opacity: 1, fillOpacity: 0.8
                         }).bindPopup(createStopPopup(stop, routeName, fcCode, idx), {
-                            maxWidth: 640 // 크기를 2배로 키움 (기존 320 예상)
+                            minWidth: 640 // minWidth를 강제로 설정
                         });
                         
                         nationalLayerGroup.addLayer(dotMarker);
@@ -347,17 +347,15 @@ function focusStopOnMap(stop, routeName, fcCode, index, color) {
         radius: 12,
         fillColor: color || '#ff3e00',
         color: '#fff',
-        weight: 3,
-        opacity: 1,
-        fillOpacity: 0.9,
-        className: 'focus-ping'
+        weight: 3, opacity: 1, fillOpacity: 0.9, className: 'focus-ping'
     }).addTo(map);
 
     map.flyTo(latlng, 17, { duration: 1 });
     
     setTimeout(() => {
         focusMarker.bindPopup(createStopPopup(stop, routeName, fcCode, index), {
-            maxWidth: 640, // 팝업 넓이 증가
+            minWidth: 640,
+            maxWidth: 640,
             className: 'comparison-popup'
         }).openPopup();
     }, 1000);
@@ -395,6 +393,7 @@ function renderSingleRoute(stops, center, routeName, color, fcCode) {
         });
 
         const marker = L.marker(latlng, { icon }).addTo(map).bindPopup(createStopPopup(stop, routeName, fcCode, index), {
+            minWidth: 640,
             maxWidth: 640
         });
         currentMarkers.push(marker);

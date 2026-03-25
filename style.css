@@ -1549,15 +1549,26 @@ select:disabled {
 }
 
 /* ===== STOP COMPARISON POPUP & FOCUS ===== */
+.leaflet-popup {
+    width: 680px !important; /* Wrapper padding 고려 */
+}
+
 .leaflet-popup-content-wrapper {
     padding: 0;
     border-radius: 12px;
+    width: 100% !important;
+    background: var(--surface) !important;
+    backdrop-filter: blur(20px);
+}
+
+.leaflet-popup-content {
+    margin: 0 !important;
+    width: 100% !important;
+    max-width: 100% !important;
 }
 
 .comparison-popup .leaflet-popup-content {
-    margin: 0 !important;
-    width: 640px !important;
-    max-width: 90vw;
+    width: 100% !important;
 }
 
 .custom-popup {
@@ -1565,33 +1576,8 @@ select:disabled {
     color: var(--text);
     width: 100%;
     box-sizing: border-box;
-}
-
-.popup-route {
-    font-size: 14px;
-    font-weight: 800;
-    color: var(--primary-light);
-    margin-bottom: 4px;
-}
-
-.popup-time {
-    font-size: 18px;
-    font-weight: 900;
-    color: var(--text);
-    margin-bottom: 8px;
-}
-
-.popup-title {
-    font-size: 20px;
-    font-weight: 800;
-    color: var(--text);
-    margin-bottom: 10px;
-}
-
-.popup-addr {
-    font-size: 14px;
-    color: var(--text-muted);
-    margin-bottom: 15px;
+    display: flex;
+    flex-direction: column;
 }
 
 .popup-photo-container {
@@ -1600,21 +1586,21 @@ select:disabled {
     border-radius: 12px;
     padding: 12px;
     border: 1px solid var(--border);
-}
-
-.photo-label {
-    font-size: 14px;
-    font-weight: 800;
-    color: var(--primary-light);
-    margin-bottom: 12px;
+    width: 100%;
+    box-sizing: border-box;
 }
 
 .popup-photo {
     width: 100%;
     height: auto;
-    border-radius: 10px;
-    cursor: zoom-in;
+    border-radius: 8px;
     display: block;
+}
+
+@media (max-width: 700px) {
+    .leaflet-popup {
+        width: 90vw !important;
+    }
 }
 
 .popup-links {
