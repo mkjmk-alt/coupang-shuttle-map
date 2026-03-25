@@ -242,7 +242,7 @@ function showNationalRoutes() {
                         const dotMarker = L.circleMarker(latlng, {
                             radius: 5, fillColor: color, color: "#fff", weight: 1, opacity: 1, fillOpacity: 0.8
                         }).bindPopup(createStopPopup(stop, routeName, fcCode, idx), {
-                            minWidth: 1000 // 초대형 팝업 (가로 약 4배 수준)
+                            minWidth: 650 
                         });
                         
                         nationalLayerGroup.addLayer(dotMarker);
@@ -315,14 +315,14 @@ function createStopPopup(stop, routeName, fcCode, index) {
     const imageUrl = stop["Image URL"];
     const imgHtml = imageUrl ? `
         <div class="popup-photo-container">
-            <div class="photo-label">📸 센터 등록 정류장 공식 사진 (확대됨)</div>
-            <img src="${imageUrl}" class="popup-photo-xl" alt="${stop.Name}" onclick="window.open('${imageUrl}', '_blank')">
-            <div class="photo-hint">* 고화질 대형 이미지입니다. 클릭하여 원본으로 볼 수 있습니다.</div>
+            <div class="photo-label">📸 센터 등록 정류장 공식 사진</div>
+            <img src="${imageUrl}" class="popup-photo-balanced" alt="${stop.Name}" onclick="window.open('${imageUrl}', '_blank')">
+            <div class="photo-hint">* 지도의 상세 위치를 사진과 대조해 보세요.</div>
         </div>
     ` : '<div class="popup-no-photo">등록된 사진이 없습니다.</div>';
 
     return `
-        <div class="custom-popup giant">
+        <div class="custom-popup balanced">
             <div class="popup-header-group">
                 <div class="popup-route">🏢 [${fcCode}] ${routeName}</div>
                 <div class="popup-time">🕐 ${stop.Time}</div>
@@ -330,13 +330,9 @@ function createStopPopup(stop, routeName, fcCode, index) {
                 <div class="popup-addr">${stop.Address || ''}</div>
             </div>
             ${imgHtml}
-            <div class="popup-links-giant">
-                <a href="https://map.naver.com/v5/search/${stop.Latitude},${stop.Longitude}" target="_blank">
-                    <span class="icon">📍</span> 네이버 지도로 열기
-                </a>
-                <a href="https://map.kakao.com/link/map/${stop.Name},${stop.Latitude},${stop.Longitude}" target="_blank">
-                    <span class="icon">🗺️</span> 카카오 맵으로 열기
-                </a>
+            <div class="popup-links-balanced">
+                <a href="https://map.naver.com/v5/search/${stop.Latitude},${stop.Longitude}" target="_blank">네이버 지도</a>
+                <a href="https://map.kakao.com/link/map/${stop.Name},${stop.Latitude},${stop.Longitude}" target="_blank">카카오 맵</a>
             </div>
         </div>
     `;
@@ -357,9 +353,9 @@ function focusStopOnMap(stop, routeName, fcCode, index, color) {
     
     setTimeout(() => {
         focusMarker.bindPopup(createStopPopup(stop, routeName, fcCode, index), {
-            minWidth: 1000,
-            maxWidth: 1000,
-            className: 'comparison-popup-giant'
+            minWidth: 650,
+            maxWidth: 650,
+            className: 'comparison-popup-balanced'
         }).openPopup();
     }, 1000);
 }
@@ -396,9 +392,9 @@ function renderSingleRoute(stops, center, routeName, color, fcCode) {
         });
 
         const marker = L.marker(latlng, { icon }).addTo(map).bindPopup(createStopPopup(stop, routeName, fcCode, index), {
-            minWidth: 1000,
-            maxWidth: 1000,
-            className: 'comparison-popup-giant'
+            minWidth: 650,
+            maxWidth: 650,
+            className: 'comparison-popup-balanced'
         });
         currentMarkers.push(marker);
 
