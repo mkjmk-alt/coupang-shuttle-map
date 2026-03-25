@@ -1698,6 +1698,59 @@ select:disabled {
     70%, 100% { transform: scale(2); opacity: 0; }
 }
 
+/* ===== DATA QA INSPECTOR ===== */
+.qa-item {
+    padding: 12px;
+    cursor: pointer;
+    transition: all 0.2s;
+    background: rgba(255, 255, 255, 0.03);
+    margin-bottom: 8px;
+    border-radius: 8px;
+    display: flex;
+    flex-direction: column;
+}
+
+.qa-item:hover {
+    background: rgba(255, 255, 255, 0.08);
+    transform: translateX(4px);
+}
+
+.qa-stop-name {
+    font-size: 14px;
+    font-weight: 800;
+    margin-top: 4px;
+    color: #fff;
+}
+
+.qa-reason {
+    font-size: 11px;
+    font-weight: 800;
+    margin-top: 6px;
+    padding: 4px 8px;
+    background: rgba(0, 0, 0, 0.3);
+    border-radius: 6px;
+    display: inline-block;
+    align-self: flex-start;
+}
+
+.qa-meta {
+    font-size: 11px;
+    color: var(--text-muted);
+    margin-top: 8px;
+    line-height: 1.4;
+    border-top: 1px solid rgba(255, 255, 255, 0.05);
+    padding-top: 8px;
+}
+
+.empty-qa {
+    padding: 60px 20px;
+    text-align: center;
+    color: var(--text-muted);
+    font-size: 13px;
+    background: rgba(0, 0, 0, 0.1);
+    border-radius: 12px;
+}
+
 .nested-stop-list {
     background: rgba(0, 0, 0, 0.1);
     margin-top: 8px;

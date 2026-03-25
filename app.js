@@ -29,7 +29,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     
     setTimeout(() => {
         showAllCenters();
-    }, 500);
+        analyzeDataQuality(); // 데이터 검증 실행
+    }, 1000);
 });
 
 // ===== Map Initialization =====
@@ -68,6 +69,104 @@ function isWithinKorea(lat, lng) {
     const nLng = parseFloat(lng);
     return nLat >= KOREA_BOUNDS.minLat && nLat <= KOREA_BOUNDS.maxLat &&
            nLng >= KOREA_BOUNDS.minLng && nLng <= KOREA_BOUNDS.maxLng;
+}
+
+function getDistance(lat1, lon1, lat2, lon2) {
+    const R = 6371; // km
+    const dLat = (lat2 - lat1) * Math.PI / 180;
+    const dLon = (lon2 - lon1) * Math.PI / 180;
+    const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
+              Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+              Math.sin(dLon/2) * Math.sin(dLon/2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+    return R * c;
+}
+
+// ===== Data QA Engine =====
+function analyzeDataQuality() {
+    const qaListEl = document.getElementById('national-route-list');
+    const qaTitleEl = document.getElementById('right-sidebar-title');
+    if (!qaListEl) return;
+    
+    qaListEl.innerHTML = '';
+    if (qaTitleEl) qaTitleEl.textContent = "🔍 AI 데이터 정밀 검증 결과";
+    
+    let suspects = [];
+
+    Object.keys(shuttleData).forEach(fcCode => {
+        const fc = shuttleData[fcCode];
+        const shifts = fc.shifts || {};
+
+        Object.keys(shifts).forEach(shiftName => {
+            const routes = shifts[shiftName];
+            Object.keys(routes).forEach(routeName => {
+                const stops = routes[routeName];
+                
+                // 1. 이상치 탐지 (거리 기준)
+                for (let i = 0; i < stops.length; i++) {
+                    const stop = stops[i];
+                    if (!isWithinKorea(stop.Latitude, stop.Longitude)) continue;
+
+                    // 이전 정류장과의 거리 체크
+                    if (i > 0) {
+                        const prev = stops[i - 1];
+                        if (isWithinKorea(prev.Latitude, prev.Longitude)) {
+                            const dist = getDistance(stop.Latitude, stop.Longitude, prev.Latitude, prev.Longitude);
+                            if (dist > 30) { // 30km 이상 떨어진 경우 의심 (단거리가 아닌 셔틀 기준)
+                                suspects.push({ fcCode, routeName, stop, reason: `급격한 경로 이탈 (${dist.toFixed(1)}km)`, color: 'var(--danger)' });
+                            }
+                        }
+                    }
+
+                    // 2. 키워드 매칭 (이름 vs 주소)
+                    const stopName = stop.Name || "";
+                    const addr = stop.Address || "";
+                    const regions = ["서울", "인천", "경기", "대구", "부산", "울산", "광주", "대전", "세종", "강원", "충북", "충남", "전북", "전남", "경북", "경남", "제주"];
+                    
+                    regions.forEach(reg => {
+                        if (stopName.includes(reg) && addr.length > 0 && !addr.includes(reg)) {
+                            suspects.push({ fcCode, routeName, stop, reason: `지역 불일치 의심 (${reg} <-> ${addr.split(' ')[0]})`, color: 'var(--warning)' });
+                        }
+                    });
+                }
+            });
+        });
+    });
+
+    if (suspects.length === 0) {
+        qaListEl.innerHTML = '<div class="empty-qa">✅ 발견된 데이터 오류가 없습니다.</div>';
+    } else {
+        // 센터별 그룹화
+        const grouped = {};
+        suspects.forEach(s => {
+            if (!grouped[s.fcCode]) grouped[s.fcCode] = [];
+            grouped[s.fcCode].push(s);
+        });
+
+        Object.keys(grouped).sort().forEach(fcCode => {
+            const groupEl = document.createElement('div');
+            groupEl.className = 'national-group';
+            groupEl.innerHTML = `<div class="national-fc-header">🏢 [${fcCode}] 의심 정류장 ${grouped[fcCode].length}개</div>`;
+            
+            grouped[fcCode].forEach((item, idx) => {
+                const itemEl = document.createElement('div');
+                itemEl.className = 'national-route-item qa-item';
+                itemEl.style.borderLeft = `4px solid ${item.color}`;
+                itemEl.innerHTML = `
+                    <div class="national-route-name">${item.routeName}</div>
+                    <div class="qa-stop-name">${item.stop.Name}</div>
+                    <div class="qa-reason" style="color:${item.color}">${item.reason}</div>
+                    <div class="qa-meta">${item.stop.Address || '주소 정보 없음'}</div>
+                `;
+                itemEl.onclick = () => {
+                    focusStopOnMap(item.stop, item.routeName, item.fcCode, idx, item.color === 'var(--danger)' ? '#ef4444' : '#f59e0b');
+                };
+                groupEl.appendChild(itemEl);
+            });
+            qaListEl.appendChild(groupEl);
+        });
+        toggleRightSidebar(true);
+    }
 }
 
 // ===== Populate UI =====
@@ -167,9 +266,6 @@ function setupEventListeners() {
 
 function toggleRightSidebar(show) {
     const sidebar = document.getElementById('sidebar-right');
-    const title = sidebar?.querySelector('h3');
-    if (title) title.textContent = "⚠️ 좌표 오류 데이터 (한국 외)";
-    
     if (sidebar) {
         sidebar.style.display = show ? 'flex' : 'none';
     }
@@ -196,11 +292,13 @@ function showNationalRoutes() {
     const rightListEl = document.getElementById('national-route-list');
     const routeDetailsEl = document.getElementById('route-details');
     const routeTitleEl = document.getElementById('route-title');
+    const rightSidebarTitle = document.getElementById('right-sidebar-title');
 
     if (leftListEl) leftListEl.innerHTML = '';
     if (rightListEl) rightListEl.innerHTML = '';
     if (routeDetailsEl) routeDetailsEl.style.display = 'block';
     if (routeTitleEl) routeTitleEl.textContent = "📑 전국 노선 현황";
+    if (rightSidebarTitle) rightSidebarTitle.textContent = "⚠️ 좌표 오류 데이터 (한국 외)";
     
     let hasInvalidData = false;
 
