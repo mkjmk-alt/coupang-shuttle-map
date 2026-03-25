@@ -4,13 +4,21 @@ let shuttleData = {};
 let currentMarkers = [];
 let currentPolylines = [];
 let centerMarkers = [];
-let nationalLayerGroup = null; // 전국 노선 레이어 그룹
+let nationalLayerGroup = null; 
 window.activeFCs = [];
 
 const ROUTE_COLORS = [
     '#4F46E5', '#F59E0B', '#10B981', '#EF4444', '#8B5CF6',
     '#EC4899', '#06B6D4', '#F97316', '#14B8A6', '#6366F1'
 ];
+
+// 한국 영역 바운더리 (좌표 필터링용)
+const KOREA_BOUNDS = {
+    minLat: 33.0,
+    maxLat: 39.0,
+    minLng: 124.0,
+    maxLng: 132.0
+};
 
 // ===== Init =====
 document.addEventListener('DOMContentLoaded', async () => {
@@ -19,7 +27,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     populateFCs();
     setupEventListeners();
     
-    // 초기 로딩 시 센터 마커 표시
     setTimeout(() => {
         showAllCenters();
     }, 500);
@@ -31,7 +38,7 @@ function initMap() {
         center: [36.5, 127.5],
         zoom: 7,
         zoomControl: false,
-        preferCanvas: true // 성능을 위해 Canvas 모드 활성화
+        preferCanvas: true 
     });
 
     L.tileLayer('https://xdworld.vworld.kr/2d/Base/service/{z}/{x}/{y}.png', {
@@ -49,13 +56,15 @@ async function loadData() {
     try {
         const response = await fetch('./data/shuttle_data.json');
         shuttleData = await response.json();
-        const subtitle = document.getElementById('subtitle');
-        if (subtitle) {
-            subtitle.textContent = `전국 ${Object.keys(shuttleData).length}개 물류센터 셔틀버스 노선 안내`;
-        }
     } catch (error) {
         console.error('데이터 로드 실패:', error);
     }
+}
+
+// ===== Helpers =====
+function isWithinKorea(lat, lng) {
+    return lat >= KOREA_BOUNDS.minLat && lat <= KOREA_BOUNDS.maxLat &&
+           lng >= KOREA_BOUNDS.minLng && lng <= KOREA_BOUNDS.maxLng;
 }
 
 // ===== Populate UI =====
@@ -77,6 +86,7 @@ function setupEventListeners() {
     const shiftSelect = document.getElementById('shift-select');
     const routeSelect = document.getElementById('route-select');
     const compareAllBtn = document.getElementById('compare-all-btn');
+    const closeRightSidebar = document.getElementById('close-right-sidebar');
 
     if (fcSelect) {
         fcSelect.addEventListener('change', (e) => {
@@ -93,9 +103,8 @@ function setupEventListeners() {
                     shiftSelect.appendChild(opt);
                 });
             }
-            
-            // 센터 변경 시 해당 센터 데이터 보여주기 위해 선택 초기화
             if (nationalLayerGroup) nationalLayerGroup.clearLayers();
+            toggleRightSidebar(false);
         });
     }
 
@@ -123,7 +132,8 @@ function setupEventListeners() {
             const route = e.target.value;
 
             if (fc && shift && route) {
-                if (nationalLayerGroup) nationalLayerGroup.clearLayers(); // 전국 보기 중일 때 단일 노선 선택 시 클리어
+                if (nationalLayerGroup) nationalLayerGroup.clearLayers();
+                toggleRightSidebar(false);
                 const stops = shuttleData[fc].shifts[shift][route];
                 const center = shuttleData[fc].center;
                 renderSingleRoute(stops, center, route, '#4F46E5', fc);
@@ -131,14 +141,18 @@ function setupEventListeners() {
         });
     }
 
-    // 전국 노선 비교 버튼 클릭 이벤트
     if (compareAllBtn) {
         compareAllBtn.addEventListener('click', () => {
             showNationalRoutes();
         });
     }
 
-    // Sidebar Toggle
+    if (closeRightSidebar) {
+        closeRightSidebar.addEventListener('click', () => {
+            toggleRightSidebar(false);
+        });
+    }
+
     const toggleBtn = document.getElementById('sidebar-toggle');
     const sidebar = document.getElementById('sidebar');
     if (toggleBtn && sidebar) {
@@ -148,11 +162,14 @@ function setupEventListeners() {
     }
 }
 
-// ===== Rendering =====
+function toggleRightSidebar(show) {
+    const sidebar = document.getElementById('sidebar-right');
+    if (sidebar) {
+        sidebar.style.display = show ? 'flex' : 'none';
+    }
+}
 
-/**
- * 전국 모든 노선의 모든 정류장을 표시
- */
+// ===== Rendering =====
 function showNationalRoutes() {
     clearRoute();
     if (nationalLayerGroup) nationalLayerGroup.clearLayers();
@@ -160,31 +177,40 @@ function showNationalRoutes() {
     const bounds = L.latLngBounds();
     let colorIdx = 0;
     
-    // 사이드바 닫기 (지도를 넓게 보기 위해)
-    const sidebar = document.getElementById('sidebar');
-    if (sidebar && !sidebar.classList.contains('collapsed')) {
-        // 모바일 최적화: 모바일에서만 닫거나 데스크탑에서도 닫을지 선택 (여기서는 사용자 편의를 위해 유지)
-    }
+    const listEl = document.getElementById('national-route-list');
+    if (listEl) listEl.innerHTML = '';
+    
+    toggleRightSidebar(true);
 
-    Object.keys(shuttleData).forEach(fcCode => {
-        const center = shuttleData[fcCode].center;
-        const shifts = shuttleData[fcCode].shifts;
+    Object.keys(shuttleData).sort().forEach(fcCode => {
+        const fc = shuttleData[fcCode];
+        const shifts = fc.shifts;
         if (!shifts) return;
+
+        const fcGroup = document.createElement('div');
+        fcGroup.className = 'national-group';
+        fcGroup.innerHTML = `<div class="national-fc-header">🏢 ${fc.center?.name || fcCode}</div>`;
+        const fcRoutesList = document.createElement('div');
+        fcGroup.appendChild(fcRoutesList);
 
         Object.keys(shifts).forEach(shiftName => {
             const routes = shifts[shiftName];
             Object.keys(routes).forEach(routeName => {
                 const stops = routes[routeName];
+                
+                // 유효한 정류장만 필터링
+                const validStops = stops.filter(s => isWithinKorea(s.Latitude, s.Longitude));
+                if (validStops.length === 0) return;
+
                 const color = ROUTE_COLORS[colorIdx % ROUTE_COLORS.length];
                 colorIdx++;
 
                 const path = [];
-                stops.forEach((stop, idx) => {
+                validStops.forEach((stop, idx) => {
                     const latlng = [stop.Latitude, stop.Longitude];
                     path.push(latlng);
                     bounds.extend(latlng);
 
-                    // 성능을 위해 대량 데이터 모드에서는 CircleMarker 사용 (더 빠름)
                     const dotMarker = L.circleMarker(latlng, {
                         radius: 5,
                         fillColor: color,
@@ -201,21 +227,36 @@ function showNationalRoutes() {
                     nationalLayerGroup.addLayer(dotMarker);
                 });
 
-                // 노선 선 그리기
                 const line = L.polyline(path, {
                     color, weight: 2, opacity: 0.5, smoothFactor: 2
                 });
                 nationalLayerGroup.addLayer(line);
+
+                // 우측 리스트 아이템 추가
+                const routeItem = document.createElement('div');
+                routeItem.className = 'national-route-item';
+                routeItem.innerHTML = `
+                    <div class="national-route-name" style="color:${color};">🚌 ${routeName}</div>
+                    <div class="national-route-meta">${shiftName} · 정류장 ${validStops.length}개</div>
+                `;
+                routeItem.onclick = () => {
+                    const routeBounds = L.latLngBounds(path);
+                    if (routeBounds.isValid()) {
+                        map.flyToBounds(routeBounds, { padding: [100, 100], duration: 1 });
+                    }
+                };
+                fcRoutesList.appendChild(routeItem);
             });
         });
+        
+        if (fcRoutesList.children.length > 0) {
+            listEl.appendChild(fcGroup);
+        }
     });
 
     if (bounds.isValid()) {
-        map.flyToBounds(bounds, { padding: [30, 30], duration: 1.5 });
+        map.flyToBounds(bounds, { padding: [50, 50], duration: 1.5 });
     }
-    
-    // 통계 정보 업데이트 (UI가 있다면)
-    updateStatsNational();
 }
 
 function renderSingleRoute(stops, center, routeName, color, fcCode) {
@@ -230,9 +271,13 @@ function renderSingleRoute(stops, center, routeName, color, fcCode) {
     if (stopListEl) stopListEl.innerHTML = '';
     if (routeDetailsEl) routeDetailsEl.style.display = 'block';
 
-    if (center) bounds.extend([center.lat, center.lng]);
+    if (center && isWithinKorea(center.lat, center.lng)) {
+        bounds.extend([center.lat, center.lng]);
+    }
 
     stops.forEach((stop, index) => {
+        if (!isWithinKorea(stop.Latitude, stop.Longitude)) return;
+
         const latlng = [stop.Latitude, stop.Longitude];
         path.push(latlng);
         bounds.extend(latlng);
@@ -293,7 +338,7 @@ function showAllCenters() {
 
     Object.keys(shuttleData).forEach(fcCode => {
         const center = shuttleData[fcCode].center;
-        if (!center) return;
+        if (!center || !isWithinKorea(center.lat, center.lng)) return;
         bounds.extend([center.lat, center.lng]);
 
         const marker = L.marker([center.lat, center.lng]).addTo(map)
@@ -304,33 +349,4 @@ function showAllCenters() {
     if (bounds.isValid() && centerMarkers.length > 0) {
         map.fitBounds(bounds, { padding: [50, 50] });
     }
-}
-
-function updateStatsNational() {
-    const statsPanel = document.getElementById('route-stats-panel');
-    if (!statsPanel) return;
-
-    statsPanel.style.display = 'flex';
-    const statCenters = document.getElementById('stat-centers');
-    const statRoutes = document.getElementById('stat-routes');
-    const statStops = document.getElementById('stat-stops');
-
-    let totalRoutes = 0;
-    let totalStops = 0;
-
-    Object.keys(shuttleData).forEach(fcCode => {
-        const fc = shuttleData[fcCode];
-        if (fc && fc.shifts) {
-            Object.values(fc.shifts).forEach(routes => {
-                totalRoutes += Object.keys(routes).length;
-                Object.values(routes).forEach(stops => {
-                    totalStops += stops.length;
-                });
-            });
-        }
-    });
-
-    if (statCenters) statCenters.textContent = Object.keys(shuttleData).length;
-    if (statRoutes) statRoutes.textContent = totalRoutes.toLocaleString();
-    if (statStops) statStops.textContent = totalStops.toLocaleString();
 }
