@@ -443,12 +443,6 @@ html {
     transform: scale(0.96);
 }
 
-.compare-toggle-btn.active {
-    background: rgba(16, 185, 129, 0.15);
-    color: var(--success);
-    border-color: rgba(16, 185, 129, 0.3);
-}
-
 #compare-all-btn {
     background: linear-gradient(135deg, rgba(79, 70, 229, 0.2), rgba(245, 158, 11, 0.15));
     border-color: rgba(129, 140, 248, 0.3);
@@ -461,9 +455,6 @@ html {
     box-shadow: 0 0 15px rgba(79, 70, 229, 0.3);
 }
 
-.compare-toggle-btn.disabled {
-    opacity: 0.8;
-}
 
 label {
     font-size: 10px;
@@ -1380,130 +1371,6 @@ select:disabled {
     }
 }
 
-/* ===== AD MODAL ===== */
-.ad-modal {
-    position: fixed;
-    top: 0; left: 0; right: 0; bottom: 0;
-    background: rgba(0, 0, 0, 0.85); /* 블러 대신 배경색 농도 조절 */
-    backdrop-filter: blur(4px); /* 고사양 블러 제거 */
-    -webkit-backdrop-filter: blur(4px);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    z-index: 9999;
-    padding: 20px;
-    opacity: 0;
-    transition: opacity 0.3s ease;
-    will-change: opacity;
-}
-
-.ad-modal.show {
-    opacity: 1;
-}
-
-.ad-modal-content {
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: var(--radius);
-    width: 100%;
-    max-width: 400px;
-    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
-    overflow: hidden;
-    transform: scale(0.95);
-    transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-}
-
-.ad-modal.show .ad-modal-content {
-    transform: scale(1);
-}
-
-.ad-modal-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 16px 20px;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
-}
-
-.ad-modal-title {
-    font-size: 16px;
-    font-weight: 800;
-    color: var(--text);
-}
-
-.ad-close-btn {
-    background: rgba(255, 255, 255, 0.1);
-    border: none;
-    color: var(--text);
-    width: 32px;
-    height: 32px;
-    border-radius: 50%;
-    font-size: 14px;
-    font-weight: 700;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    cursor: pointer;
-    transition: var(--transition);
-}
-
-.ad-close-btn:not(:disabled):hover {
-    background: rgba(239, 68, 68, 0.2);
-    color: var(--danger);
-}
-
-.ad-close-btn:disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
-}
-
-.ad-modal-body {
-    padding: 24px 20px;
-    background: #0f172a;
-    min-height: 250px;
-    display: flex;
-    flex-direction: column;
-    align-items: stretch;
-    justify-content: flex-start;
-}
-
-.tip-container {
-    background: rgba(255, 255, 255, 0.03);
-    border: 1px dashed rgba(255, 255, 255, 0.1);
-    border-radius: 10px;
-    padding: 16px;
-    margin-bottom: 5px;
-}
-
-.tip-label {
-    font-size: 13px;
-    font-weight: 800;
-    color: var(--primary-light);
-    margin-bottom: 8px;
-    display: flex;
-    align-items: center;
-    gap: 6px;
-}
-
-.tip-text {
-    font-size: 13px;
-    line-height: 1.6;
-    color: var(--text);
-    word-break: keep-all;
-}
-
-.ad-modal-footer {
-    padding: 16px 20px;
-    text-align: center;
-    font-size: 13px;
-    color: var(--text-muted);
-    background: rgba(255, 255, 255, 0.02);
-    border-top: 1px solid rgba(255, 255, 255, 0.05);
-}
-
-.ad-modal-footer b {
-    color: var(--primary-light);
-}
 
 /* ===== SEO CONTENT SECTION ===== */
 .seo-content {
