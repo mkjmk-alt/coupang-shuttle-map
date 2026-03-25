@@ -242,7 +242,7 @@ function showNationalRoutes() {
                         const dotMarker = L.circleMarker(latlng, {
                             radius: 5, fillColor: color, color: "#fff", weight: 1, opacity: 1, fillOpacity: 0.8
                         }).bindPopup(createStopPopup(stop, routeName, fcCode, idx), {
-                            minWidth: 640 // minWidth를 강제로 설정
+                            minWidth: 1000 // 초대형 팝업 (가로 약 4배 수준)
                         });
                         
                         nationalLayerGroup.addLayer(dotMarker);
@@ -315,22 +315,28 @@ function createStopPopup(stop, routeName, fcCode, index) {
     const imageUrl = stop["Image URL"];
     const imgHtml = imageUrl ? `
         <div class="popup-photo-container">
-            <div class="photo-label">📸 센터 등록 정류장 사진</div>
-            <img src="${imageUrl}" class="popup-photo" alt="${stop.Name}" onclick="window.open('${imageUrl}', '_blank')">
-            <div class="photo-hint">* 사진을 클릭하면 크게 볼 수 있습니다</div>
+            <div class="photo-label">📸 센터 등록 정류장 공식 사진 (확대됨)</div>
+            <img src="${imageUrl}" class="popup-photo-xl" alt="${stop.Name}" onclick="window.open('${imageUrl}', '_blank')">
+            <div class="photo-hint">* 고화질 대형 이미지입니다. 클릭하여 원본으로 볼 수 있습니다.</div>
         </div>
     ` : '<div class="popup-no-photo">등록된 사진이 없습니다.</div>';
 
     return `
-        <div class="custom-popup large">
-            <div class="popup-route">🏢 [${fcCode}] ${routeName}</div>
-            <div class="popup-time">🕐 ${stop.Time}</div>
-            <div class="popup-title">${index + 1}. ${stop.Name}</div>
-            <div class="popup-addr">${stop.Address || ''}</div>
+        <div class="custom-popup giant">
+            <div class="popup-header-group">
+                <div class="popup-route">🏢 [${fcCode}] ${routeName}</div>
+                <div class="popup-time">🕐 ${stop.Time}</div>
+                <div class="popup-title">${index + 1}. ${stop.Name}</div>
+                <div class="popup-addr">${stop.Address || ''}</div>
+            </div>
             ${imgHtml}
-            <div class="popup-links">
-                <a href="https://map.naver.com/v5/search/${stop.Latitude},${stop.Longitude}" target="_blank">네이버 지도</a>
-                <a href="https://map.kakao.com/link/map/${stop.Name},${stop.Latitude},${stop.Longitude}" target="_blank">카카오 맵</a>
+            <div class="popup-links-giant">
+                <a href="https://map.naver.com/v5/search/${stop.Latitude},${stop.Longitude}" target="_blank">
+                    <span class="icon">📍</span> 네이버 지도로 열기
+                </a>
+                <a href="https://map.kakao.com/link/map/${stop.Name},${stop.Latitude},${stop.Longitude}" target="_blank">
+                    <span class="icon">🗺️</span> 카카오 맵으로 열기
+                </a>
             </div>
         </div>
     `;
@@ -344,19 +350,16 @@ function focusStopOnMap(stop, routeName, fcCode, index, color) {
     }
 
     focusMarker = L.circleMarker(latlng, {
-        radius: 12,
-        fillColor: color || '#ff3e00',
-        color: '#fff',
-        weight: 3, opacity: 1, fillOpacity: 0.9, className: 'focus-ping'
+        radius: 12, fillColor: color || '#ff3e00', color: '#fff', weight: 3, opacity: 1, fillOpacity: 0.9, className: 'focus-ping'
     }).addTo(map);
 
     map.flyTo(latlng, 17, { duration: 1 });
     
     setTimeout(() => {
         focusMarker.bindPopup(createStopPopup(stop, routeName, fcCode, index), {
-            minWidth: 640,
-            maxWidth: 640,
-            className: 'comparison-popup'
+            minWidth: 1000,
+            maxWidth: 1000,
+            className: 'comparison-popup-giant'
         }).openPopup();
     }, 1000);
 }
@@ -393,8 +396,9 @@ function renderSingleRoute(stops, center, routeName, color, fcCode) {
         });
 
         const marker = L.marker(latlng, { icon }).addTo(map).bindPopup(createStopPopup(stop, routeName, fcCode, index), {
-            minWidth: 640,
-            maxWidth: 640
+            minWidth: 1000,
+            maxWidth: 1000,
+            className: 'comparison-popup-giant'
         });
         currentMarkers.push(marker);
 
