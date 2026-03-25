@@ -242,7 +242,7 @@ function showNationalRoutes() {
                         const dotMarker = L.circleMarker(latlng, {
                             radius: 5, fillColor: color, color: "#fff", weight: 1, opacity: 1, fillOpacity: 0.8
                         }).bindPopup(createStopPopup(stop, routeName, fcCode, idx), {
-                            minWidth: 650 
+                            minWidth: 600 
                         });
                         
                         nationalLayerGroup.addLayer(dotMarker);
@@ -353,8 +353,8 @@ function focusStopOnMap(stop, routeName, fcCode, index, color) {
     
     setTimeout(() => {
         focusMarker.bindPopup(createStopPopup(stop, routeName, fcCode, index), {
-            minWidth: 650,
-            maxWidth: 650,
+            minWidth: 600,
+            maxWidth: 600,
             className: 'comparison-popup-balanced'
         }).openPopup();
     }, 1000);
@@ -392,8 +392,8 @@ function renderSingleRoute(stops, center, routeName, color, fcCode) {
         });
 
         const marker = L.marker(latlng, { icon }).addTo(map).bindPopup(createStopPopup(stop, routeName, fcCode, index), {
-            minWidth: 650,
-            maxWidth: 650,
+            minWidth: 600,
+            maxWidth: 600,
             className: 'comparison-popup-balanced'
         });
         currentMarkers.push(marker);

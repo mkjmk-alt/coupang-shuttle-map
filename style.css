@@ -1548,13 +1548,13 @@ select:disabled {
     }
 }
 
-/* ===== BALANCED STOP COMPARISON POPUP (650px) ===== */
+/* ===== BALANCED STOP COMPARISON POPUP (600px) ===== */
 .comparison-popup-balanced {
     z-index: 5000;
 }
 
 .comparison-popup-balanced .leaflet-popup-content-wrapper {
-    width: 650px !important;
+    width: 600px !important;
     max-width: 95vw !important;
     padding: 0;
     border-radius: 12px;
