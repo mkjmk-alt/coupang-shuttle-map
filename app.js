@@ -28,6 +28,11 @@ document.addEventListener('DOMContentLoaded', async () => {
     populateFCs();
     setupEventListeners();
     
+    // Global helper for map popups to trigger sidebar highlight
+    window.highlightFromMap = (idx) => {
+        toggleRouteHighlight(idx);
+    };
+    
     // 첫 화면 버벅임 해소: 맵과 UI가 완전히 그려진 후, 0.5초 뒤에 센터 마커들을 천천히 뿌립니다.
     setTimeout(() => {
         if (window.requestIdleCallback) {
@@ -727,26 +732,62 @@ function showMultiRoute(fcCodes, shiftFilter) {
     let totalStops = 0;
     let allTimes = [];
 
-    // If comparing many FCs, add a warning/info header in the sidebar
-    if (fcCodes.length > 15) {
+    // If comparing many FCs, add a info header in the sidebar
+    if (fcCodes.length > 5) {
         const fcHeader = document.createElement('div');
         fcHeader.className = 'list-section-header';
-        fcHeader.style.background = 'rgba(245, 158, 11, 0.15)';
-        fcHeader.style.color = 'var(--accent)';
+        fcHeader.style.background = 'rgba(79, 70, 229, 0.15)';
+        fcHeader.style.color = 'var(--primary)';
         fcHeader.style.fontWeight = '800';
         fcHeader.style.marginTop = '16px';
-        fcHeader.innerHTML = `<span class="section-icon">🌐</span> 전국 ${fcCodes.length}개 센터 노선 시각화 중`;
+        fcHeader.innerHTML = `<span class="section-icon">🌐</span> 전국 ${fcCodes.length}개 센터 노선 시각화`;
         stopListEl.appendChild(fcHeader);
         
         const infoMsg = document.createElement('div');
         infoMsg.style.padding = '8px 12px';
-        infoMsg.style.fontSize = '11px';
-        infoMsg.style.color = 'var(--text-muted)';
-        infoMsg.textContent = '지도의 각 노선을 클릭하여 상세 정보를 확인하세요. (성능을 위해 목록은 생략됩니다)';
+        infoMsg.style.fontSize = '12px';
+        infoMsg.style.color = 'var(--text)';
+        infoMsg.innerHTML = '지도의 노선을 클릭하거나 아래 목록에서 노선을 선택해 <b>상세 정류장</b>을 확인하세요.';
         stopListEl.appendChild(infoMsg);
+
+        // Add Expand/Collapse All buttons
+        const controlPanel = document.createElement('div');
+        controlPanel.style.display = 'flex';
+        controlPanel.style.gap = '8px';
+        controlPanel.style.padding = '0 12px 12px 12px';
+        
+        const expandBtn = document.createElement('button');
+        expandBtn.className = 'compare-toggle-btn';
+        expandBtn.style.flex = '1';
+        expandBtn.style.fontSize = '11px';
+        expandBtn.style.padding = '6px';
+        expandBtn.textContent = '➕ 전체 열기';
+        expandBtn.onclick = () => {
+            const groups = stopListEl.querySelectorAll('.route-header');
+            groups.forEach((h, i) => {
+                if (!routeLayerGroups[i].routeHeader.classList.contains('active')) {
+                    toggleRouteHighlight(i);
+                }
+            });
+        };
+        
+        const collapseBtn = document.createElement('button');
+        collapseBtn.className = 'compare-toggle-btn';
+        collapseBtn.style.flex = '1';
+        collapseBtn.style.fontSize = '11px';
+        collapseBtn.style.padding = '6px';
+        collapseBtn.textContent = '➖ 전체 닫기';
+        collapseBtn.onclick = () => {
+            clearRoute(); // Simply clearing and re-rendering with fcCodes is one way, but let's just use clearRoute
+            showMultiRoute(fcCodes, shiftFilter);
+        };
+        
+        controlPanel.appendChild(expandBtn);
+        controlPanel.appendChild(collapseBtn);
+        stopListEl.appendChild(controlPanel);
     }
 
-    const shouldRenderSidebar = fcCodes.length <= 15;
+    const shouldRenderSidebar = true; // Always render sidebar list for better accessibility
 
     fcCodes.forEach(fcCode => {
         const fc = shuttleData[fcCode];
@@ -798,8 +839,8 @@ function showMultiRoute(fcCodes, shiftFilter) {
 
                 // Markers (Canvas handles performance)
                 const dotMarkers = stops.map((stop, idx) => {
-                    return L.circleMarker([stop.Latitude, stop.Longitude], {
-                        radius: 7,
+                    const marker = L.circleMarker([stop.Latitude, stop.Longitude], {
+                        radius: 8.5, // Slightly larger for better readability
                         fillColor: color,
                         fillOpacity: 1,
                         color: '#ffffff',
@@ -811,8 +852,24 @@ function showMultiRoute(fcCodes, shiftFilter) {
                         <div class="popup-time">🕐 ${stop.Time} · ${shiftName}</div>
                         <div class="popup-title">${stop.Name}</div>
                         <div class="popup-addr">${stop.Address}</div>
+                        <div style="margin-top:8px; border-top:1px solid #eee; padding-top:8px; font-size:11px; color:#4F46E5; cursor:pointer;" onclick="window.highlightFromMap(${routeIdx})">🖱️ 노선 전체 보기 (목록 확장)</div>
                     `);
+                    
+                    marker.on('click', (e) => {
+                        // Keep popup open but also highlight
+                        // setTimeout to prevent click event conflict
+                        setTimeout(() => toggleRouteHighlight(routeIdx), 10);
+                    });
+                    
+                    return marker;
                 });
+
+                polyline.on('click', (e) => {
+                    L.DomEvent.stopPropagation(e);
+                    toggleRouteHighlight(routeIdx);
+                });
+                
+                polyline.setStyle({ cursor: 'pointer' });
 
                 // Sidebar UI (only if few centers)
                 let routeHeader, stopsContainer;
