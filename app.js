@@ -12,7 +12,7 @@ const ROUTE_COLORS = [
     '#EC4899', '#06B6D4', '#F97316', '#14B8A6', '#6366F1'
 ];
 
-// 한국 영역 바운더리 (좌표 필터링용)
+// 한국 영역 바운더리 (좌표 필터링 및 데이터 무결성 체크용)
 const KOREA_BOUNDS = {
     minLat: 33.0,
     maxLat: 39.0,
@@ -63,6 +63,7 @@ async function loadData() {
 
 // ===== Helpers =====
 function isWithinKorea(lat, lng) {
+    if (!lat || !lng) return false;
     return lat >= KOREA_BOUNDS.minLat && lat <= KOREA_BOUNDS.maxLat &&
            lng >= KOREA_BOUNDS.minLng && lng <= KOREA_BOUNDS.maxLng;
 }
@@ -164,12 +165,16 @@ function setupEventListeners() {
 
 function toggleRightSidebar(show) {
     const sidebar = document.getElementById('sidebar-right');
+    const title = sidebar?.querySelector('h3');
+    if (title) title.textContent = "⚠️ 좌표 오류 데이터 (한국 외)";
+    
     if (sidebar) {
         sidebar.style.display = show ? 'flex' : 'none';
     }
 }
 
 // ===== Rendering =====
+
 function showNationalRoutes() {
     clearRoute();
     if (nationalLayerGroup) nationalLayerGroup.clearLayers();
@@ -177,85 +182,121 @@ function showNationalRoutes() {
     const bounds = L.latLngBounds();
     let colorIdx = 0;
     
-    const listEl = document.getElementById('national-route-list');
-    if (listEl) listEl.innerHTML = '';
+    const leftListEl = document.getElementById('stop-list');
+    const rightListEl = document.getElementById('national-route-list');
+    const routeDetailsEl = document.getElementById('route-details');
+    const routeTitleEl = document.getElementById('route-title');
+
+    if (leftListEl) leftListEl.innerHTML = '';
+    if (rightListEl) rightListEl.innerHTML = '';
+    if (routeDetailsEl) routeDetailsEl.style.display = 'block';
+    if (routeTitleEl) routeTitleEl.textContent = "📑 전국 노선 현황";
     
-    toggleRightSidebar(true);
+    let hasInvalidData = false;
 
     Object.keys(shuttleData).sort().forEach(fcCode => {
         const fc = shuttleData[fcCode];
         const shifts = fc.shifts;
         if (!shifts) return;
 
-        const fcGroup = document.createElement('div');
-        fcGroup.className = 'national-group';
-        fcGroup.innerHTML = `<div class="national-fc-header">🏢 ${fc.center?.name || fcCode}</div>`;
-        const fcRoutesList = document.createElement('div');
-        fcGroup.appendChild(fcRoutesList);
+        // 왼쪽 사이드바용 그룹 (정상 데이터)
+        const leftFcGroup = document.createElement('div');
+        leftFcGroup.className = 'national-group';
+        leftFcGroup.innerHTML = `<div class="national-fc-header">🏢 ${fc.center?.name || fcCode}</div>`;
+        const leftFcRoutesList = document.createElement('div');
+        leftFcGroup.appendChild(leftFcRoutesList);
+
+        // 오른쪽 사이드바용 그룹 (오류 데이터)
+        const rightFcGroup = document.createElement('div');
+        rightFcGroup.className = 'national-group';
+        rightFcGroup.innerHTML = `<div class="national-fc-header" style="background:rgba(239, 68, 68, 0.1); color:var(--danger);">❌ ${fcCode} 오류 데이터</div>`;
+        const rightFcRoutesList = document.createElement('div');
+        rightFcGroup.appendChild(rightFcRoutesList);
 
         Object.keys(shifts).forEach(shiftName => {
             const routes = shifts[shiftName];
             Object.keys(routes).forEach(routeName => {
                 const stops = routes[routeName];
                 
-                // 유효한 정류장만 필터링
+                // 데이터 분류
                 const validStops = stops.filter(s => isWithinKorea(s.Latitude, s.Longitude));
-                if (validStops.length === 0) return;
+                const invalidStops = stops.filter(s => !isWithinKorea(s.Latitude, s.Longitude));
 
-                const color = ROUTE_COLORS[colorIdx % ROUTE_COLORS.length];
-                colorIdx++;
+                // 1. 정상 데이터 처리 (왼쪽 사이드바 & 지도)
+                if (validStops.length > 0) {
+                    const color = ROUTE_COLORS[colorIdx % ROUTE_COLORS.length];
+                    colorIdx++;
 
-                const path = [];
-                validStops.forEach((stop, idx) => {
-                    const latlng = [stop.Latitude, stop.Longitude];
-                    path.push(latlng);
-                    bounds.extend(latlng);
+                    const path = [];
+                    validStops.forEach((stop, idx) => {
+                        const latlng = [stop.Latitude, stop.Longitude];
+                        path.push(latlng);
+                        bounds.extend(latlng);
 
-                    const dotMarker = L.circleMarker(latlng, {
-                        radius: 5,
-                        fillColor: color,
-                        color: "#fff",
-                        weight: 1,
-                        opacity: 1,
-                        fillOpacity: 0.8
-                    }).bindPopup(`
-                        <div class="popup-route">🏢 [${fcCode}] ${routeName}</div>
-                        <div class="popup-time">🕐 ${stop.Time}</div>
-                        <div class="popup-title">${idx + 1}. ${stop.Name}</div>
-                    `);
-                    
-                    nationalLayerGroup.addLayer(dotMarker);
-                });
+                        const dotMarker = L.circleMarker(latlng, {
+                            radius: 5,
+                            fillColor: color,
+                            color: "#fff",
+                            weight: 1,
+                            opacity: 1,
+                            fillOpacity: 0.8
+                        }).bindPopup(`
+                            <div class="popup-route">🏢 [${fcCode}] ${routeName}</div>
+                            <div class="popup-time">🕐 ${stop.Time}</div>
+                            <div class="popup-title">${idx + 1}. ${stop.Name}</div>
+                        `);
+                        nationalLayerGroup.addLayer(dotMarker);
+                    });
 
-                const line = L.polyline(path, {
-                    color, weight: 2, opacity: 0.5, smoothFactor: 2
-                });
-                nationalLayerGroup.addLayer(line);
+                    const line = L.polyline(path, { color, weight: 2, opacity: 0.5, smoothFactor: 2 });
+                    nationalLayerGroup.addLayer(line);
 
-                // 우측 리스트 아이템 추가
-                const routeItem = document.createElement('div');
-                routeItem.className = 'national-route-item';
-                routeItem.innerHTML = `
-                    <div class="national-route-name" style="color:${color};">🚌 ${routeName}</div>
-                    <div class="national-route-meta">${shiftName} · 정류장 ${validStops.length}개</div>
-                `;
-                routeItem.onclick = () => {
-                    const routeBounds = L.latLngBounds(path);
-                    if (routeBounds.isValid()) {
-                        map.flyToBounds(routeBounds, { padding: [100, 100], duration: 1 });
-                    }
-                };
-                fcRoutesList.appendChild(routeItem);
+                    const routeItem = document.createElement('div');
+                    routeItem.className = 'national-route-item';
+                    routeItem.innerHTML = `
+                        <div class="national-route-name" style="color:${color};">🚌 ${routeName}</div>
+                        <div class="national-route-meta">${shiftName} · ${validStops.length}개 정류장</div>
+                    `;
+                    routeItem.onclick = () => {
+                        const routeBounds = L.latLngBounds(path);
+                        if (routeBounds.isValid()) map.flyToBounds(routeBounds, { padding: [100, 100], duration: 1 });
+                    };
+                    leftFcRoutesList.appendChild(routeItem);
+                }
+
+                // 2. 오류 데이터 처리 (오른쪽 사이드바)
+                if (invalidStops.length > 0) {
+                    hasInvalidData = true;
+                    invalidStops.forEach(stop => {
+                        const errorItem = document.createElement('div');
+                        errorItem.className = 'national-route-item';
+                        errorItem.style.borderLeft = "3px solid var(--danger)";
+                        errorItem.innerHTML = `
+                            <div class="national-route-name">🚫 ${routeName} - ${stop.Name}</div>
+                            <div class="national-route-meta">좌표: ${stop.Latitude || 'N/A'}, ${stop.Longitude || 'N/A'}</div>
+                        `;
+                        rightFcRoutesList.appendChild(errorItem);
+                    });
+                }
             });
         });
         
-        if (fcRoutesList.children.length > 0) {
-            listEl.appendChild(fcGroup);
-        }
+        if (leftFcRoutesList.children.length > 0) listElToAppend(leftListEl, leftFcGroup);
+        if (rightFcRoutesList.children.length > 0) listElToAppend(rightListEl, rightFcGroup);
     });
+
+    function listElToAppend(parent, child) {
+        if (parent) parent.appendChild(child);
+    }
 
     if (bounds.isValid()) {
         map.flyToBounds(bounds, { padding: [50, 50], duration: 1.5 });
+    }
+    
+    // 오류 데이터가 있을 때만 우측 사이드바 표시
+    toggleRightSidebar(hasInvalidData);
+    if (!hasInvalidData && rightListEl) {
+        rightListEl.innerHTML = '<div class="list-placeholder">모든 데이터가 한국 내 정상 범위에 있습니다. ✅</div>';
     }
 }
 
@@ -267,9 +308,11 @@ function renderSingleRoute(stops, center, routeName, color, fcCode) {
     const path = [];
     const stopListEl = document.getElementById('stop-list');
     const routeDetailsEl = document.getElementById('route-details');
+    const routeTitleEl = document.getElementById('route-title');
 
     if (stopListEl) stopListEl.innerHTML = '';
     if (routeDetailsEl) routeDetailsEl.style.display = 'block';
+    if (routeTitleEl) routeTitleEl.textContent = "📍 노선 정류장";
 
     if (center && isWithinKorea(center.lat, center.lng)) {
         bounds.extend([center.lat, center.lng]);
