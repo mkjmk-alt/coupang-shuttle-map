@@ -1549,40 +1549,57 @@ select:disabled {
 }
 
 /* ===== STOP COMPARISON POPUP & FOCUS ===== */
+.leaflet-popup-content-wrapper {
+    padding: 0;
+    border-radius: 12px;
+}
+
+.comparison-popup .leaflet-popup-content {
+    margin: 0 !important;
+    width: 640px !important; /* 가로 2배 */
+    max-width: 90vw;
+}
+
+.custom-popup {
+    padding: 20px;
+    color: var(--text);
+}
+
 .popup-photo-container {
-    margin-top: 12px;
-    background: rgba(0, 0, 0, 0.2);
-    border-radius: 8px;
-    padding: 8px;
+    margin-top: 15px;
+    background: rgba(0, 0, 0, 0.3);
+    border-radius: 10px;
+    padding: 10px;
     border: 1px solid var(--border);
 }
 
 .photo-label {
-    font-size: 11px;
-    font-weight: 700;
+    font-size: 13px;
+    font-weight: 800;
     color: var(--primary-light);
-    margin-bottom: 6px;
-    display: flex;
-    align-items: center;
-    gap: 4px;
+    margin-bottom: 10px;
 }
 
 .popup-photo {
     width: 100%;
-    border-radius: 6px;
+    height: auto;
+    min-height: 200px;
+    border-radius: 8px;
     cursor: zoom-in;
-    transition: transform 0.2s;
-}
-
-.popup-photo:hover {
-    transform: scale(1.02);
+    object-fit: cover;
 }
 
 .photo-hint {
-    font-size: 10px;
+    font-size: 11px;
     color: var(--text-muted);
-    margin-top: 6px;
+    margin-top: 8px;
     text-align: center;
+}
+
+@media (max-width: 600px) {
+    .comparison-popup .leaflet-popup-content {
+        width: 300px !important;
+    }
 }
 
 .popup-no-photo {

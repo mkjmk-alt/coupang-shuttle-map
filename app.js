@@ -5,7 +5,7 @@ let currentMarkers = [];
 let currentPolylines = [];
 let centerMarkers = [];
 let nationalLayerGroup = null; 
-let focusMarker = null; // 정류장 강조용 마커
+let focusMarker = null; 
 window.activeFCs = [];
 
 const ROUTE_COLORS = [
@@ -241,7 +241,9 @@ function showNationalRoutes() {
 
                         const dotMarker = L.circleMarker(latlng, {
                             radius: 5, fillColor: color, color: "#fff", weight: 1, opacity: 1, fillOpacity: 0.8
-                        }).bindPopup(createStopPopup(stop, routeName, fcCode, idx));
+                        }).bindPopup(createStopPopup(stop, routeName, fcCode, idx), {
+                            maxWidth: 640 // 크기를 2배로 키움 (기존 320 예상)
+                        });
                         
                         nationalLayerGroup.addLayer(dotMarker);
                     });
@@ -251,8 +253,6 @@ function showNationalRoutes() {
 
                     const routeItem = document.createElement('div');
                     routeItem.className = 'national-route-item';
-                    const routeId = `route-${fcCode}-${routeName}`.replace(/\s+/g, '-');
-                    routeItem.id = routeId;
                     routeItem.innerHTML = `
                         <div class="national-route-name" style="color:${color};">🚌 ${routeName}</div>
                         <div class="national-route-meta">${shiftName} · ${validStops.length}개 정류장 <span class="toggle-stops">▼</span></div>
@@ -322,7 +322,7 @@ function createStopPopup(stop, routeName, fcCode, index) {
     ` : '<div class="popup-no-photo">등록된 사진이 없습니다.</div>';
 
     return `
-        <div class="custom-popup">
+        <div class="custom-popup large">
             <div class="popup-route">🏢 [${fcCode}] ${routeName}</div>
             <div class="popup-time">🕐 ${stop.Time}</div>
             <div class="popup-title">${index + 1}. ${stop.Name}</div>
@@ -343,7 +343,6 @@ function focusStopOnMap(stop, routeName, fcCode, index, color) {
         map.removeLayer(focusMarker);
     }
 
-    // 강조 마커 생성
     focusMarker = L.circleMarker(latlng, {
         radius: 12,
         fillColor: color || '#ff3e00',
@@ -358,7 +357,7 @@ function focusStopOnMap(stop, routeName, fcCode, index, color) {
     
     setTimeout(() => {
         focusMarker.bindPopup(createStopPopup(stop, routeName, fcCode, index), {
-            maxWidth: 320,
+            maxWidth: 640, // 팝업 넓이 증가
             className: 'comparison-popup'
         }).openPopup();
     }, 1000);
@@ -395,7 +394,9 @@ function renderSingleRoute(stops, center, routeName, color, fcCode) {
             iconSize: [26, 26], iconAnchor: [13, 13]
         });
 
-        const marker = L.marker(latlng, { icon }).addTo(map).bindPopup(createStopPopup(stop, routeName, fcCode, index));
+        const marker = L.marker(latlng, { icon }).addTo(map).bindPopup(createStopPopup(stop, routeName, fcCode, index), {
+            maxWidth: 640
+        });
         currentMarkers.push(marker);
 
         if (stopListEl) {
