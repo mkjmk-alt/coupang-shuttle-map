@@ -214,7 +214,7 @@ function renderQAAnalysis(listEl) {
                                     });
                                 } else if (timeDiff === 0 && dist > 1) {
                                     suspects.push({ 
-                                        type: 'speed', fcCode, shiftName, routeName, stop, 
+                                        type: 'time', fcCode, shiftName, routeName, stop, 
                                         reason: `동일 시간대 위치 차이 (${dist.toFixed(1)}km)`, color: '#ec4899' 
                                     });
                                 }
