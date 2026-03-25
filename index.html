@@ -237,11 +237,15 @@
 
 
 
-    <!-- Right Sidebar (National List) -->
     <aside class="sidebar-right" id="sidebar-right" style="display: none;">
         <div class="sidebar-right-header">
-            <h3>📑 전국 노선 목록</h3>
+            <h3 id="right-sidebar-title">📊 데이터 대시보드</h3>
             <button id="close-right-sidebar" class="close-btn">×</button>
+        </div>
+        <div class="sidebar-tabs">
+            <button class="s-tab active" data-tab="national">🗺️ 전국 노선</button>
+            <button class="s-tab" data-tab="qa">🔍 데이터 검증</button>
+            <button class="s-tab" data-tab="error">🚫 좌표 오류</button>
         </div>
         <div id="national-route-list" class="national-route-list">
             <div class="list-placeholder">전국 노선 비교를 누르면 <br>여기에 목록이 표시됩니다.</div>
