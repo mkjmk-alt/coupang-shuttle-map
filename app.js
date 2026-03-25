@@ -6,7 +6,7 @@ let currentPolylines = [];
 let centerMarkers = [];
 let nationalLayerGroup = null; 
 let focusMarker = null; 
-let currentRightTab = 'national'; // 'national', 'qa', 'error'
+let currentRightTab = 'national'; 
 window.activeFCs = [];
 
 const ROUTE_COLORS = [
@@ -23,14 +23,25 @@ const KOREA_BOUNDS = {
 
 // ===== Init =====
 document.addEventListener('DOMContentLoaded', async () => {
+    console.log('[Init] 앱 초기화 시작...');
     initMap();
     await loadData();
-    populateFCs();
-    setupEventListeners();
     
-    setTimeout(() => {
-        showAllCenters();
-    }, 1000);
+    if (Object.keys(shuttleData).length > 0) {
+        console.log(`[Init] ${Object.keys(shuttleData).length}개의 센터 데이터 로드 완료`);
+        populateFCs();
+        setupEventListeners();
+        
+        setTimeout(() => {
+            showAllCenters();
+            // 기본적으로 전국 노선 탭 렌더링 준비
+            currentRightTab = 'national';
+            refreshRightSidebar();
+        }, 500);
+    } else {
+        console.error('[Init] 로드된 데이터가 없습니다. JSON 경로를 확인하세요.');
+        alert('셔틀 데이터를 로드하지 못했습니다. 서버 상태를 확인해 주세요.');
+    }
 });
 
 // ===== Map Initialization =====
@@ -56,9 +67,11 @@ function initMap() {
 async function loadData() {
     try {
         const response = await fetch('./data/shuttle_data.json');
+        if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
         shuttleData = await response.json();
     } catch (error) {
         console.error('데이터 로드 실패:', error);
+        shuttleData = {};
     }
 }
 
@@ -87,20 +100,30 @@ function getDistance(lat1, lon1, lat2, lon2) {
 function refreshRightSidebar() {
     const listEl = document.getElementById('national-route-list');
     if (!listEl) return;
-    listEl.innerHTML = '';
+    listEl.innerHTML = '<div class="list-placeholder">로딩 중...</div>';
 
-    if (currentRightTab === 'national') {
-        renderNationalRoutesList(listEl);
-    } else if (currentRightTab === 'qa') {
-        renderQAAnalysis(listEl);
-    } else if (currentRightTab === 'error') {
-        renderCoordinateErrors(listEl);
-    }
+    setTimeout(() => {
+        listEl.innerHTML = '';
+        if (currentRightTab === 'national') {
+            renderNationalRoutesList(listEl);
+        } else if (currentRightTab === 'qa') {
+            renderQAAnalysis(listEl);
+        } else if (currentRightTab === 'error') {
+            renderCoordinateErrors(listEl);
+        }
+    }, 10);
 }
 
 function renderNationalRoutesList(listEl) {
     let colorIdx = 0;
-    Object.keys(shuttleData).sort().forEach(fcCode => {
+    const fcCodes = Object.keys(shuttleData).sort();
+    
+    if (fcCodes.length === 0) {
+        listEl.innerHTML = '<div class="empty-qa">표시할 데이터가 없습니다.</div>';
+        return;
+    }
+
+    fcCodes.forEach(fcCode => {
         const fc = shuttleData[fcCode];
         const shifts = fc.shifts || {};
         const fcGroup = document.createElement('div');
@@ -136,7 +159,7 @@ function renderNationalRoutesList(listEl) {
                         nestedList.style.display = isExpanded ? 'none' : 'block';
                         routeItem.querySelector('.toggle-stops').textContent = isExpanded ? '▼' : '▲';
                         if (!isExpanded) {
-                            const path = validStops.map(s => [s.Latitude, s.Longitude]);
+                            const path = validStops.map(s => [parseFloat(s.Latitude), parseFloat(s.Longitude)]);
                             const routeBounds = L.latLngBounds(path);
                             if (routeBounds.isValid()) map.flyToBounds(routeBounds, { padding: [100, 100], duration: 1 });
                         }
@@ -204,6 +227,7 @@ function renderCoordinateErrors(listEl) {
     Object.keys(shuttleData).forEach(fcCode => {
         const shifts = shuttleData[fcCode].shifts || {};
         Object.keys(shifts).forEach(shiftName => {
+            if (!shifts[shiftName]) return;
             Object.keys(shifts[shiftName]).forEach(routeName => {
                 const stops = shifts[shiftName][routeName];
                 const invalid = stops.filter(s => !isWithinKorea(s.Latitude, s.Longitude));
@@ -238,6 +262,20 @@ function renderCoordinateErrors(listEl) {
 
 // ===== UI Logic =====
 
+function populateFCs() {
+    const fcSelect = document.getElementById('fc-select');
+    if (!fcSelect) return;
+    fcSelect.innerHTML = '<option value="">센터를 선택하세요</option>';
+
+    Object.keys(shuttleData).sort().forEach(fc => {
+        const option = document.createElement('option');
+        option.value = fc;
+        const centerName = shuttleData[fc].center?.name || fc;
+        option.textContent = `${centerName} [${fc}]`;
+        fcSelect.appendChild(option);
+    });
+}
+
 function setupEventListeners() {
     const fcSelect = document.getElementById('fc-select');
     const shiftSelect = document.getElementById('shift-select');
@@ -251,6 +289,9 @@ function setupEventListeners() {
             const fc = e.target.value;
             shiftSelect.innerHTML = '<option value="">근무조를 선택하세요</option>';
             shiftSelect.disabled = !fc;
+            routeSelect.innerHTML = '<option value="">노선을 선택하세요</option>';
+            routeSelect.disabled = true;
+
             if (fc && shuttleData[fc]?.shifts) {
                 Object.keys(shuttleData[fc].shifts).sort().forEach(s => {
                     const opt = document.createElement('option');
@@ -308,8 +349,10 @@ function setupEventListeners() {
     }
 
     tabs.forEach(tab => {
-        tab.addEventListener('click', () => {
+        tab.addEventListener('click', (e) => {
+            e.preventDefault();
             currentRightTab = tab.dataset.tab;
+            console.log(`[Tab] Switching to ${currentRightTab}`);
             updateTabs();
             refreshRightSidebar();
         });
@@ -356,7 +399,7 @@ function showNationalRoutesOnMap() {
                     const color = ROUTE_COLORS[colorIdx % ROUTE_COLORS.length]; colorIdx++;
                     const path = [];
                     validStops.forEach((stop, idx) => {
-                        const latlng = [stop.Latitude, stop.Longitude];
+                        const latlng = [parseFloat(stop.Latitude), parseFloat(stop.Longitude)];
                         path.push(latlng);
                         bounds.extend(latlng);
                         const dotMarker = L.circleMarker(latlng, { radius: 5, fillColor: color, color: "#fff", weight: 1, opacity: 1, fillOpacity: 0.8 })
@@ -421,11 +464,11 @@ function renderSingleRoute(stops, center, routeName, color, fcCode) {
     if (routeDetailsEl) routeDetailsEl.style.display = 'block';
     if (routeTitleEl) routeTitleEl.textContent = "📍 노선 정류장";
 
-    if (center && isWithinKorea(center.lat, center.lng)) bounds.extend([center.lat, center.lng]);
+    if (center && isWithinKorea(center.lat, center.lng)) bounds.extend([parseFloat(center.lat), parseFloat(center.lng)]);
 
     stops.forEach((stop, index) => {
         if (!isWithinKorea(stop.Latitude, stop.Longitude)) return;
-        const latlng = [stop.Latitude, stop.Longitude];
+        const latlng = [parseFloat(stop.Latitude), parseFloat(stop.Longitude)];
         path.push(latlng);
         bounds.extend(latlng);
         const marker = L.marker(latlng, { icon: L.divIcon({ className: 'stop-icon', html: `<div class="stop-marker-inner" style="background:${color};">${index + 1}</div>`, iconSize: [26, 26], iconAnchor: [13, 13] }) })
@@ -458,8 +501,8 @@ function showAllCenters() {
     Object.keys(shuttleData).forEach(fcCode => {
         const center = shuttleData[fcCode].center;
         if (!center || !isWithinKorea(center.lat, center.lng)) return;
-        bounds.extend([center.lat, center.lng]);
-        centerMarkers.push(L.marker([center.lat, center.lng]).addTo(map).bindPopup(`<b>${center.name}</b><br>${center.address || ''}`));
+        bounds.extend([parseFloat(center.lat), parseFloat(center.lng)]);
+        centerMarkers.push(L.marker([parseFloat(center.lat), parseFloat(center.lng)]).addTo(map).bindPopup(`<b>${center.name}</b><br>${center.address || ''}`));
     });
     if (bounds.isValid() && centerMarkers.length > 0) map.fitBounds(bounds, { padding: [50, 50] });
 }
