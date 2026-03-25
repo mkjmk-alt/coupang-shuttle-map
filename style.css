@@ -1705,6 +1705,7 @@ select:disabled {
     border-bottom: 1px solid var(--border);
     padding: 6px;
     gap: 4px;
+    flex-shrink: 0;
 }
 
 .s-tab {
@@ -1734,12 +1735,14 @@ select:disabled {
 
 .qa-filter-bar {
     display: flex;
-    background: rgba(0, 0, 0, 0.4);
-    padding: 8px;
+    background: rgba(15, 23, 42, 0.95);
+    padding: 8px 10px;
     gap: 6px;
     border-bottom: 1px solid var(--border);
     overflow-x: auto;
     scrollbar-width: none;
+    flex-shrink: 0;
+    z-index: 5;
 }
 
 .qa-filter-bar::-webkit-scrollbar {
