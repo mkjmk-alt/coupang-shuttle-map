@@ -23,24 +23,17 @@ const KOREA_BOUNDS = {
 
 // ===== Init =====
 document.addEventListener('DOMContentLoaded', async () => {
-    console.log('[Init] 앱 초기화 시작...');
     initMap();
     await loadData();
     
     if (Object.keys(shuttleData).length > 0) {
-        console.log(`[Init] ${Object.keys(shuttleData).length}개의 센터 데이터 로드 완료`);
         populateFCs();
         setupEventListeners();
-        
         setTimeout(() => {
             showAllCenters();
-            // 기본적으로 전국 노선 탭 렌더링 준비
             currentRightTab = 'national';
             refreshRightSidebar();
         }, 500);
-    } else {
-        console.error('[Init] 로드된 데이터가 없습니다. JSON 경로를 확인하세요.');
-        alert('셔틀 데이터를 로드하지 못했습니다. 서버 상태를 확인해 주세요.');
     }
 });
 
@@ -67,7 +60,6 @@ function initMap() {
 async function loadData() {
     try {
         const response = await fetch('./data/shuttle_data.json');
-        if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
         shuttleData = await response.json();
     } catch (error) {
         console.error('데이터 로드 실패:', error);
@@ -86,10 +78,10 @@ function isWithinKorea(lat, lng) {
 
 function getDistance(lat1, lon1, lat2, lon2) {
     const R = 6371; // km
-    const dLat = (lat2 - lat1) * Math.PI / 180;
-    const dLon = (lon2 - lon1) * Math.PI / 180;
+    const dLat = (parseFloat(lat2) - parseFloat(lat1)) * Math.PI / 180;
+    const dLon = (parseFloat(lon2) - parseFloat(lon1)) * Math.PI / 180;
     const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
-              Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+              Math.cos(parseFloat(lat1) * Math.PI / 180) * Math.cos(parseFloat(lat2) * Math.PI / 180) *
               Math.sin(dLon/2) * Math.sin(dLon/2);
     const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
     return R * c;
@@ -100,30 +92,20 @@ function getDistance(lat1, lon1, lat2, lon2) {
 function refreshRightSidebar() {
     const listEl = document.getElementById('national-route-list');
     if (!listEl) return;
-    listEl.innerHTML = '<div class="list-placeholder">로딩 중...</div>';
+    listEl.innerHTML = '';
 
-    setTimeout(() => {
-        listEl.innerHTML = '';
-        if (currentRightTab === 'national') {
-            renderNationalRoutesList(listEl);
-        } else if (currentRightTab === 'qa') {
-            renderQAAnalysis(listEl);
-        } else if (currentRightTab === 'error') {
-            renderCoordinateErrors(listEl);
-        }
-    }, 10);
+    if (currentRightTab === 'national') {
+        renderNationalRoutesList(listEl);
+    } else if (currentRightTab === 'qa') {
+        renderQAAnalysis(listEl);
+    } else if (currentRightTab === 'error') {
+        renderCoordinateErrors(listEl);
+    }
 }
 
 function renderNationalRoutesList(listEl) {
     let colorIdx = 0;
-    const fcCodes = Object.keys(shuttleData).sort();
-    
-    if (fcCodes.length === 0) {
-        listEl.innerHTML = '<div class="empty-qa">표시할 데이터가 없습니다.</div>';
-        return;
-    }
-
-    fcCodes.forEach(fcCode => {
+    Object.keys(shuttleData).sort().forEach(fcCode => {
         const fc = shuttleData[fcCode];
         const shifts = fc.shifts || {};
         const fcGroup = document.createElement('div');
@@ -151,7 +133,7 @@ function renderNationalRoutesList(listEl) {
                         const stopEl = document.createElement('div');
                         stopEl.className = 'nested-stop-item';
                         stopEl.innerHTML = `<span class="n-idx">${idx+1}</span> ${stop.Name}`;
-                        stopEl.onclick = (e) => { e.stopPropagation(); focusStopOnMap(stop, routeName, fcCode, idx, color); };
+                        stopEl.onclick = (e) => { e.stopPropagation(); focusStopOnMap(stop, routeName, fcCode, idx, color, shiftName); };
                         nestedList.appendChild(stopEl);
                     });
                     routeItem.onclick = () => {
@@ -159,9 +141,8 @@ function renderNationalRoutesList(listEl) {
                         nestedList.style.display = isExpanded ? 'none' : 'block';
                         routeItem.querySelector('.toggle-stops').textContent = isExpanded ? '▼' : '▲';
                         if (!isExpanded) {
-                            const path = validStops.map(s => [parseFloat(s.Latitude), parseFloat(s.Longitude)]);
-                            const routeBounds = L.latLngBounds(path);
-                            if (routeBounds.isValid()) map.flyToBounds(routeBounds, { padding: [100, 100], duration: 1 });
+                            // 특정 노선 고립화 (Isoalte)
+                            isolateRouteOnMap(fcCode, shiftName, routeName, color);
                         }
                     };
                     fcRoutesList.appendChild(routeItem);
@@ -187,7 +168,7 @@ function renderQAAnalysis(listEl) {
                         const prev = stops[i - 1];
                         if (isWithinKorea(prev.Latitude, prev.Longitude)) {
                             const dist = getDistance(stop.Latitude, stop.Longitude, prev.Latitude, prev.Longitude);
-                            if (dist > 30) suspects.push({ fcCode, routeName, stop, reason: `급격한 경로 이탈 (${dist.toFixed(1)}km)`, color: 'var(--danger)' });
+                            if (dist > 30) suspects.push({ fcCode, shiftName, routeName, stop, reason: `급격한 경로 이탈 (${dist.toFixed(1)}km)`, color: 'var(--danger)' });
                         }
                     }
                 }
@@ -214,7 +195,7 @@ function renderQAAnalysis(listEl) {
                     <div class="qa-reason" style="color:${item.color}">${item.reason}</div>
                     <div class="qa-meta">${item.stop.Address || '주소 정보 없음'}</div>
                 `;
-                itemEl.onclick = () => focusStopOnMap(item.stop, item.routeName, item.fcCode, idx, item.color === 'var(--danger)' ? '#ef4444' : '#f59e0b');
+                itemEl.onclick = () => focusStopOnMap(item.stop, item.routeName, item.fcCode, idx, item.color === 'var(--danger)' ? '#ef4444' : '#f59e0b', item.shiftName);
                 groupEl.appendChild(itemEl);
             });
             listEl.appendChild(groupEl);
@@ -266,7 +247,6 @@ function populateFCs() {
     const fcSelect = document.getElementById('fc-select');
     if (!fcSelect) return;
     fcSelect.innerHTML = '<option value="">센터를 선택하세요</option>';
-
     Object.keys(shuttleData).sort().forEach(fc => {
         const option = document.createElement('option');
         option.value = fc;
@@ -291,7 +271,6 @@ function setupEventListeners() {
             shiftSelect.disabled = !fc;
             routeSelect.innerHTML = '<option value="">노선을 선택하세요</option>';
             routeSelect.disabled = true;
-
             if (fc && shuttleData[fc]?.shifts) {
                 Object.keys(shuttleData[fc].shifts).sort().forEach(s => {
                     const opt = document.createElement('option');
@@ -299,8 +278,7 @@ function setupEventListeners() {
                     shiftSelect.appendChild(opt);
                 });
             }
-            clearNational();
-            toggleRightSidebar(false);
+            clearNational(); toggleRightSidebar(false);
         });
     }
 
@@ -326,8 +304,7 @@ function setupEventListeners() {
             const shift = shiftSelect.value;
             const route = e.target.value;
             if (fc && shift && route) {
-                clearNational();
-                toggleRightSidebar(false);
+                clearNational(); toggleRightSidebar(false);
                 const stops = shuttleData[fc].shifts[shift][route];
                 renderSingleRoute(stops, shuttleData[fc].center, route, '#4F46E5', fc);
             }
@@ -338,9 +315,7 @@ function setupEventListeners() {
         compareAllBtn.addEventListener('click', () => {
             showNationalRoutesOnMap();
             currentRightTab = 'national';
-            updateTabs();
-            refreshRightSidebar();
-            toggleRightSidebar(true);
+            updateTabs(); refreshRightSidebar(); toggleRightSidebar(true);
         });
     }
 
@@ -350,11 +325,8 @@ function setupEventListeners() {
 
     tabs.forEach(tab => {
         tab.addEventListener('click', (e) => {
-            e.preventDefault();
             currentRightTab = tab.dataset.tab;
-            console.log(`[Tab] Switching to ${currentRightTab}`);
-            updateTabs();
-            refreshRightSidebar();
+            updateTabs(); refreshRightSidebar();
         });
     });
 
@@ -366,9 +338,7 @@ function setupEventListeners() {
 }
 
 function updateTabs() {
-    document.querySelectorAll('.s-tab').forEach(t => {
-        t.classList.toggle('active', t.dataset.tab === currentRightTab);
-    });
+    document.querySelectorAll('.s-tab').forEach(t => t.classList.toggle('active', t.dataset.tab === currentRightTab));
 }
 
 function toggleRightSidebar(show) {
@@ -381,11 +351,34 @@ function clearNational() {
     if (focusMarker) { map.removeLayer(focusMarker); focusMarker = null; }
 }
 
+// ===== Isolation Logic =====
+
+function isolateRouteOnMap(fcCode, shiftName, routeName, color) {
+    clearNational();
+    const stops = shuttleData[fcCode]?.shifts?.[shiftName]?.[routeName];
+    if (!stops) return;
+
+    const validStops = stops.filter(s => isWithinKorea(s.Latitude, s.Longitude));
+    const bounds = L.latLngBounds();
+    const path = [];
+
+    validStops.forEach((stop, idx) => {
+        const latlng = [parseFloat(stop.Latitude), parseFloat(stop.Longitude)];
+        path.push(latlng);
+        bounds.extend(latlng);
+        const marker = L.circleMarker(latlng, { radius: 6, fillColor: color, color: "#fff", weight: 2, opacity: 1, fillOpacity: 0.9 })
+            .bindPopup(createStopPopup(stop, routeName, fcCode, idx), { minWidth: 600 });
+        nationalLayerGroup.addLayer(marker);
+    });
+
+    const poly = L.polyline(path, { color, weight: 5, opacity: 0.8 }).addTo(nationalLayerGroup);
+    if (bounds.isValid()) map.flyToBounds(bounds, { padding: [100, 100], duration: 1 });
+}
+
 // ===== Map Rendering =====
 
 function showNationalRoutesOnMap() {
-    clearRoute();
-    clearNational();
+    clearRoute(); clearNational();
     const bounds = L.latLngBounds();
     let colorIdx = 0;
 
@@ -400,13 +393,12 @@ function showNationalRoutesOnMap() {
                     const path = [];
                     validStops.forEach((stop, idx) => {
                         const latlng = [parseFloat(stop.Latitude), parseFloat(stop.Longitude)];
-                        path.push(latlng);
-                        bounds.extend(latlng);
-                        const dotMarker = L.circleMarker(latlng, { radius: 5, fillColor: color, color: "#fff", weight: 1, opacity: 1, fillOpacity: 0.8 })
+                        path.push(latlng); bounds.extend(latlng);
+                        const dotMarker = L.circleMarker(latlng, { radius: 4, fillColor: color, color: "#fff", weight: 1, opacity: 0.6, fillOpacity: 0.4 })
                             .bindPopup(createStopPopup(stop, routeName, fcCode, idx), { minWidth: 600 });
                         nationalLayerGroup.addLayer(dotMarker);
                     });
-                    nationalLayerGroup.addLayer(L.polyline(path, { color, weight: 2, opacity: 0.5, smoothFactor: 2 }));
+                    nationalLayerGroup.addLayer(L.polyline(path, { color, weight: 1, opacity: 0.2 }));
                 }
             });
         });
@@ -415,15 +407,6 @@ function showNationalRoutesOnMap() {
 }
 
 function createStopPopup(stop, routeName, fcCode, index) {
-    const imageUrl = stop["Image URL"];
-    const imgHtml = imageUrl ? `
-        <div class="popup-photo-container">
-            <div class="photo-label">📸 센터 등록 정류장 공식 사진</div>
-            <img src="${imageUrl}" class="popup-photo-balanced" alt="${stop.Name}" onclick="window.open('${imageUrl}', '_blank')">
-            <div class="photo-hint">* 지도의 상세 위치를 사진과 대조해 보세요.</div>
-        </div>
-    ` : '<div class="popup-no-photo">등록된 사진이 없습니다.</div>';
-
     return `
         <div class="custom-popup balanced">
             <div class="popup-header-group">
@@ -432,7 +415,7 @@ function createStopPopup(stop, routeName, fcCode, index) {
                 <div class="popup-title">${index + 1}. ${stop.Name}</div>
                 <div class="popup-addr">${stop.Address || ''}</div>
             </div>
-            ${imgHtml}
+            ${stop["Image URL"] ? `<div class="popup-photo-container"><div class="photo-label">📸 센터 등록 정류장 사진</div><img src="${stop["Image URL"]}" class="popup-photo-balanced" alt="${stop.Name}" onclick="window.open('${stop["Image URL"]}', '_blank')"><div class="photo-hint">* 지도의 상세 위치를 사진과 대조해 보세요.</div></div>` : '<div class="popup-no-photo">등록된 사진이 없습니다.</div>'}
             <div class="popup-links-balanced">
                 <a href="https://map.naver.com/v5/search/${stop.Latitude},${stop.Longitude}" target="_blank">네이버 지도</a>
                 <a href="https://map.kakao.com/link/map/${stop.Name},${stop.Latitude},${stop.Longitude}" target="_blank">카카오 맵</a>
@@ -441,10 +424,11 @@ function createStopPopup(stop, routeName, fcCode, index) {
     `;
 }
 
-function focusStopOnMap(stop, routeName, fcCode, index, color) {
+function focusStopOnMap(stop, routeName, fcCode, index, color, shiftName) {
+    isolateRouteOnMap(fcCode, shiftName, routeName, color);
     const latlng = [parseFloat(stop.Latitude), parseFloat(stop.Longitude)];
     if (focusMarker) map.removeLayer(focusMarker);
-    focusMarker = L.circleMarker(latlng, { radius: 12, fillColor: color, color: '#fff', weight: 3, opacity: 1, fillOpacity: 0.9, className: 'focus-ping' }).addTo(map);
+    focusMarker = L.circleMarker(latlng, { radius: 12, fillColor: color, color: '#fff', weight: 4, opacity: 1, fillOpacity: 0.9, className: 'focus-ping' }).addTo(map);
     map.flyTo(latlng, 17, { duration: 1 });
     setTimeout(() => {
         focusMarker.bindPopup(createStopPopup(stop, routeName, fcCode, index), { minWidth: 600, maxWidth: 600, className: 'comparison-popup-balanced' }).openPopup();
@@ -452,37 +436,29 @@ function focusStopOnMap(stop, routeName, fcCode, index, color) {
 }
 
 function renderSingleRoute(stops, center, routeName, color, fcCode) {
-    clearRoute();
-    clearNational();
-    const bounds = L.latLngBounds();
-    const path = [];
+    clearRoute(); clearNational();
+    const bounds = L.latLngBounds(); const path = [];
     const stopListEl = document.getElementById('stop-list');
-    const routeDetailsEl = document.getElementById('route-details');
-    const routeTitleEl = document.getElementById('route-title');
-
     if (stopListEl) stopListEl.innerHTML = '';
-    if (routeDetailsEl) routeDetailsEl.style.display = 'block';
-    if (routeTitleEl) routeTitleEl.textContent = "📍 노선 정류장";
+    if (document.getElementById('route-details')) document.getElementById('route-details').style.display = 'block';
+    if (document.getElementById('route-title')) document.getElementById('route-title').textContent = "📍 노선 정류장";
 
     if (center && isWithinKorea(center.lat, center.lng)) bounds.extend([parseFloat(center.lat), parseFloat(center.lng)]);
 
     stops.forEach((stop, index) => {
         if (!isWithinKorea(stop.Latitude, stop.Longitude)) return;
         const latlng = [parseFloat(stop.Latitude), parseFloat(stop.Longitude)];
-        path.push(latlng);
-        bounds.extend(latlng);
+        path.push(latlng); bounds.extend(latlng);
         const marker = L.marker(latlng, { icon: L.divIcon({ className: 'stop-icon', html: `<div class="stop-marker-inner" style="background:${color};">${index + 1}</div>`, iconSize: [26, 26], iconAnchor: [13, 13] }) })
             .addTo(map).bindPopup(createStopPopup(stop, routeName, fcCode, index), { minWidth: 600, maxWidth: 600, className: 'comparison-popup-balanced' });
         currentMarkers.push(marker);
         if (stopListEl) {
-            const item = document.createElement('div');
-            item.className = 'stop-item';
+            const item = document.createElement('div'); item.className = 'stop-item';
             item.innerHTML = `<div class="stop-number">${index + 1}</div><div class="stop-content"><div class="stop-time">🕐 ${stop.Time}</div><div class="stop-name">${stop.Name}</div></div>`;
             item.onclick = () => focusStopOnMap(stop, routeName, fcCode, index, color);
             stopListEl.appendChild(item);
         }
     });
-
     currentPolylines.push(L.polyline(path, { color, weight: 4, opacity: 0.7, dashArray: '10, 8' }).addTo(map));
     if (bounds.isValid()) map.flyToBounds(bounds, { padding: [50, 50] });
 }
